@@ -26,17 +26,25 @@ settings = Settings()
 
 COLORS = {
     "polars": "#0075FF",
-    "polars-eager": "#00B4D8",
-    "duckdb": "#80B9C8",
-    "pyspark": "#C29470",
-    "dask": "#77D487",
-    "pandas": "#2B8C5D",
-    "modin": "#50B05F",
+    "polars-eager": "#00e695",
+    "polars-gpu": "#00e604",
+    "polars-streaming": "#001be6",
+    "cudf": "#7b00e6",
+    "fireducks": "#d80000",
+    "duckdb": "#d8d100",
+    "pyspark": "#d87a00",
+    "dask": "#d80056",
+    "pandas": "#05005c",
+    "modin": "#00b4e6",
 }
 
 SOLUTION_NAME_MAP = {
     "polars": "Polars",
-    "polars-eager": "Polars - eager",
+    "polars-eager": "Polars - Eager",
+    "polars-gpu": "Polars - GPU",
+    "polars-streaming": "Polars - Streaming",
+    "cudf": "cuDF",
+    "fireducks": "Fireducks",
     "duckdb": "DuckDB",
     "pandas": "pandas",
     "dask": "Dask",

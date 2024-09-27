@@ -1,3 +1,4 @@
+import os
 from pathlib import Path
 from typing import Literal, TypeAlias
 
@@ -24,13 +25,14 @@ class Paths(BaseSettings):
 class Run(BaseSettings):
     io_type: IoType = "parquet"
 
-    log_timings: bool = False
+    log_timings: bool = True
     show_results: bool = False
     check_results: bool = False  # Only available for SCALE_FACTOR=1
 
     polars_show_plan: bool = False
-    polars_eager: bool = False
-    polars_streaming: bool = False
+    polars_eager: bool = os.environ.get("POLARS_EAGER", 0)
+    polars_gpu: bool = os.environ.get("POLARS_GPU", 0)
+    polars_streaming: bool = os.environ.get("POLARS_STREAMING", 0)
 
     modin_memory: int = 8_000_000_000  # Tune as needed for optimal performance
 
@@ -50,7 +52,7 @@ class Run(BaseSettings):
 
 class Plot(BaseSettings):
     show: bool = False
-    n_queries: int = 7
+    n_queries: int = 22
     y_limit: float | None = None
 
     model_config = SettingsConfigDict(

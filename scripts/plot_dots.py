@@ -42,7 +42,7 @@ def parse_queries(s: str) -> list[str]:
             query_numbers.update(range(start, end + 1))
         else:
             query_numbers.add(int(part))
-    return [f"q{x}" for x in sorted(query_numbers)]
+    return [f"Q{x}" for x in sorted(query_numbers)]
 
 
 def read_csv(filename: str) -> pl.DataFrame:
@@ -60,19 +60,26 @@ def prepare_timings(
     queries: list[str],
     include_io: bool,
 ) -> pl.DataFrame:
+    # Drop scale_factor as it's not needed
+    timings = timings.drop("scale_factor")
+    
+    # Filter the right IO type and include IO option
+    timings = timings.filter(pl.col("io_type") == settings.run.io_type)
+
+    # Filter relevant queries
+    timings = timings.filter(pl.col("query_number").is_in([int(q[1:]) for q in queries]))
+
+    # Include or exclude IO time based on the flag
+    timings = timings.filter(pl.lit(include_io))
+
     return (
         timings.join(styles, on="solution", how="left")
-        .filter(
-            pl.col("success")
-            & pl.col("query_no").is_in(queries)
-            & (pl.col("include_io") == include_io)
-            & ~pl.col("solution").is_in(exclude_solutions)
-        )
+        .filter(~pl.col("solution").is_in(exclude_solutions))
         .select(
             pl.col("solution"),
             pl.col("name"),
             (pl.col("name") + " (" + pl.col("version") + ")").alias("name_version"),
-            pl.col("query_no").alias("query"),
+            pl.col("query_number").alias("query"),
             pl.col("duration[s]").alias("duration"),
         )
     )
@@ -136,7 +143,7 @@ def create_plot(
     args: argparse.Namespace,
 ) -> p9.ggplot:
     if args.include_io:
-        subtitle = "Results including reading parquet (lower is better)"
+        subtitle = f"Results including reading {settings.run.io_type} (lower is better)"
     else:
         subtitle = "Results starting from in-memory data (lower is better)"
 

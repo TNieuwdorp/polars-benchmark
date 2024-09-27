@@ -63,13 +63,25 @@ def get_part_supp_ds() -> pl.LazyFrame:
 def run_query(query_number: int, lf: pl.LazyFrame) -> None:
     streaming = settings.run.polars_streaming
     eager = settings.run.polars_eager
+    engine = "gpu" if settings.run.polars_gpu else "cpu"
+    streaming = settings.run.polars_streaming
+
+    if eager:
+        library_name = "polars-eager"
+    elif engine == "gpu": 
+        engine = pl.lazyframe.engine_config.GPUEngine(raise_on_fail=True)
+        library_name = "polars-gpu"
+    elif streaming:
+        library_name = "polars-streaming"
+    else:
+        library_name = "polars"
 
     if settings.run.polars_show_plan:
         print(lf.explain(streaming=streaming, optimized=eager))
 
-    query = partial(lf.collect, streaming=streaming, no_optimization=eager)
+    query = partial(lf.collect, streaming=streaming, no_optimization=eager, engine=engine)
 
-    library_name = "polars" if not eager else "polars-eager"
+
     run_query_generic(
         query,
         query_number,
