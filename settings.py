@@ -33,6 +33,17 @@ class Run(BaseSettings):
     polars_eager: bool = os.environ.get("POLARS_EAGER", 0)
     polars_gpu: bool = os.environ.get("POLARS_GPU", 0)
     polars_streaming: bool = os.environ.get("POLARS_STREAMING", 0)
+    polars_gpu_device: int = 0  # The GPU device to run on for polars GPU
+    # Which style of GPU memory resource to use
+    # cuda -> cudaMalloc
+    # cuda-pool -> Pool suballocator wrapped around cudaMalloc
+    # managed -> cudaMallocManaged
+    # managed-pool -> Pool suballocator wrapped around cudaMallocManaged
+    # cuda-async -> cudaMallocAsync (comes with pool)
+    # See https://docs.rapids.ai/api/rmm/stable/ for details on RMM memory resources
+    use_rmm_mr: Literal[
+        "cuda", "cuda-pool", "managed", "managed-pool", "cuda-async"
+    ] = "cuda-async"
 
     modin_memory: int = 8_000_000_000  # Tune as needed for optimal performance
 
