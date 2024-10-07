@@ -23,9 +23,15 @@ bump-deps: .venv  ## Bump Python project dependencies
 	$(VENV_BIN)/uv pip compile requirements-dev.in > requirements-dev.txt
 
 .PHONY: install-gpu-env 
-install-gpu-env: 
-	conda create -n rapids-24.08 -c rapidsai -c conda-forge -c nvidia  \
-		cudf=24.08 python=3.11 'cuda-version>=12.0,<=12.5'
+install-gpu-env:
+	@if ! conda info --envs | grep -q "rapids-24.08"; then \
+		echo "Conda environment 'rapids-24.08' not found. Installing..."; \
+		conda create -n rapids-24.08 -c rapidsai -c conda-forge -c nvidia \
+			cudf=24.08 python=3.11 'cuda-version>=12.0,<=12.5' --yes; \
+		conda run -n rapids-24.08 pip install -r requirements.in; \
+	else \
+		echo "Conda environment 'rapids-24.08' already exists. Skipping installation."; \
+	fi
 
 .PHONY: fmt
 fmt:  ## Run autoformatting and linting
@@ -36,7 +42,9 @@ fmt:  ## Run autoformatting and linting
 .PHONY: pre-commit
 pre-commit: fmt  ## Run all code quality checks
 
-data/tables: .venv  ## Generate data tables
+tables: data/tables/scale-$(SCALE_FACTOR)/.done  ## Alias for the dataset generation
+
+data/tables/scale-$(SCALE_FACTOR)/.done: .venv  ## Generate data tables if not already generated
 	$(MAKE) -C tpch-dbgen dbgen
 	cd tpch-dbgen && ./dbgen -vf -s $(SCALE_FACTOR) && cd ..
 	mkdir -p "data/tables/scale-$(SCALE_FACTOR)"
@@ -46,27 +54,27 @@ data/tables: .venv  ## Generate data tables
 	touch data/tables/scale-$(SCALE_FACTOR)/.done
 
 .PHONY: run-polars
-run-polars: .venv data/tables/.done  ## Run Polars benchmarks
+run-polars: .venv tables  ## Run Polars benchmarks
 	$(VENV_BIN)/python -m queries.polars
 
 .PHONY: run-fireducks
-run-fireducks: .venv data/tables/.done  ## Run Polars benchmarks
+run-fireducks: .venv tables  ## Run Polars benchmarks
 	$(VENV_BIN)/python -m queries.fireducks
 
 .PHONY: run-cudf
-run-cudf: .venv data/tables/.done  ## Run Polars benchmarks
-	$(VENV_BIN)/python -m queries.cudf
+run-cudf: install-gpu-env tables  ## Run Polars benchmarks
+	conda run -n rapids-24.08 python -m queries.cudf
 
 .PHONY: run-polars-eager
-run-polars-eager: .venv data/tables/.done  ## Run Polars benchmarks
+run-polars-eager: .venv tables  ## Run Polars benchmarks
 	POLARS_EAGER=1 $(VENV_BIN)/python -m queries.polars
 
 .PHONY: run-polars-gpu
-run-polars-gpu: .venv data/tables/.done  ## Run Polars benchmarks
-	POLARS_GPU=1 $(VENV_BIN)/python -m queries.polars
+run-polars-gpu: install-gpu-env tables  ## Run Polars benchmarks
+	POLARS_GPU=1 conda run -n rapids-24.08 python -m queries.polars
 
 .PHONY: run-polars-streaming
-run-polars-streaming: .venv data/tables/.done  ## Run Polars benchmarks
+run-polars-streaming: .venv tables  ## Run Polars benchmarks
 	POLARS_STREAMING=1 $(VENV_BIN)/python -m queries.polars
 
 .PHONY: run-polars-no-env
@@ -79,23 +87,23 @@ run-polars-no-env:  ## Run Polars benchmarks
 	rm -rf data/tables/scale-$(SCALE_FACTOR)/*.tbl
 	python -m queries.polars
 
-.PHONY: run-duckdb data/tables/.done
+.PHONY: run-duckdb tables
 run-duckdb: .venv  ## Run DuckDB benchmarks
 	$(VENV_BIN)/python -m queries.duckdb
 
-.PHONY: run-pandas data/tables/.done
+.PHONY: run-pandas tables
 run-pandas: .venv  ## Run pandas benchmarks
 	$(VENV_BIN)/python -m queries.pandas
 
-.PHONY: run-pyspark data/tables/.done
+.PHONY: run-pyspark tables
 run-pyspark: .venv  ## Run PySpark benchmarks
 	$(VENV_BIN)/python -m queries.pyspark
 
-.PHONY: run-dask data/tables/.done
+.PHONY: run-dask tables
 run-dask: .venv  ## Run Dask benchmarks
 	$(VENV_BIN)/python -m queries.dask
 
-.PHONY: run-modin data/tables/.done
+.PHONY: run-modin tables
 run-modin: .venv  ## Run Modin benchmarks
 	$(VENV_BIN)/python -m queries.modin
 
