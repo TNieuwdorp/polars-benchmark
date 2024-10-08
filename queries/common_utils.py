@@ -6,6 +6,7 @@ from importlib.metadata import version
 from pathlib import Path
 from subprocess import run
 from typing import TYPE_CHECKING, Any
+from datetime import datetime
 
 from linetimer import CodeTimer
 
@@ -33,7 +34,7 @@ def log_query_timing(
 
     with (settings.paths.timings / settings.paths.timings_filename).open("a") as f:
         if f.tell() == 0:
-            f.write("solution,version,query_number,duration[s],io_type,scale_factor\n")
+            f.write("solution,version,query_number,duration[s],io_type,scale_factor,datetime_iso\n")
 
         line = (
             ",".join(
@@ -44,6 +45,7 @@ def log_query_timing(
                     str(time),
                     settings.run.io_type,
                     str(settings.scale_factor),
+                    datetime.now().isoformat()
                 ]
             )
             + "\n"
