@@ -84,9 +84,9 @@ fmt:  ## Run autoformatting and linting
 
 pre-commit: fmt  ## Run all code quality checks
 
-tables: data/tables/scale-$(SCALE_FACTOR)/.done  ## Alias for the dataset generation
+tables: data/tables/scale-$(SCALE_FACTOR)/.done   ## Alias for the dataset generation
 
-data/tables/scale-$(SCALE_FACTOR)/.done: .venv  ## Generate data tables if not already generated
+data/tables/scale-$(SCALE_FACTOR)/.done: install-deps  ## Generate data tables if not already generated
 	$(MAKE) -C tpch-dbgen dbgen
 	cd tpch-dbgen && ./dbgen -vf -s $(SCALE_FACTOR) && cd ..
 	mkdir -p "data/tables/scale-$(SCALE_FACTOR)"
@@ -95,22 +95,22 @@ data/tables/scale-$(SCALE_FACTOR)/.done: .venv  ## Generate data tables if not a
 	rm -rf data/tables/scale-$(SCALE_FACTOR)/*.tbl
 	touch data/tables/scale-$(SCALE_FACTOR)/.done
 
-run-polars: .venv tables  ## Run Polars benchmarks
+run-polars: install-deps tables  ## Run Polars benchmarks
 	$(VENV_BIN)/python -m queries.polars
 
-run-fireducks: .venv tables  ## Run Fireducks benchmarks
+run-fireducks: install-deps tables  ## Run Fireducks benchmarks
 	$(VENV_BIN)/python -m queries.fireducks
 
 run-cudf: install-gpu-env tables  ## Run cuDF benchmarks
 	conda run -n rapids-24.08 python -m queries.cudf
 
-run-polars-eager: .venv tables  ## Run Polars benchmarks in eager mode
+run-polars-eager: install-deps tables  ## Run Polars benchmarks in eager mode
 	POLARS_EAGER=1 $(VENV_BIN)/python -m queries.polars
 
 run-polars-gpu: install-gpu-env tables  ## Run Polars GPU benchmarks
 	POLARS_GPU=1 conda run -n rapids-24.08 python -m queries.polars
 
-run-polars-streaming: .venv tables  ## Run Polars streaming benchmarks
+run-polars-streaming: install-deps tables  ## Run Polars streaming benchmarks
 	POLARS_STREAMING=1 $(VENV_BIN)/python -m queries.polars
 
 run-polars-no-env:  ## Run Polars benchmarks without virtual environment
@@ -125,19 +125,19 @@ run-polars-no-env:  ## Run Polars benchmarks without virtual environment
 run-polars-gpu-no-env: run-polars-no-env  ## Run Polars CPU and GPU benchmarks without virtual environment
 	RUN_POLARS_GPU=true CUDA_MODULE_LOADING=EAGER python -m queries.polars
 
-run-duckdb: .venv tables  ## Run DuckDB benchmarks
+run-duckdb: install-deps tables  ## Run DuckDB benchmarks
 	$(VENV_BIN)/python -m queries.duckdb
 
-run-pandas: .venv tables  ## Run pandas benchmarks
+run-pandas: install-deps tables  ## Run pandas benchmarks
 	$(VENV_BIN)/python -m queries.pandas
 
-run-pyspark: .venv tables  ## Run PySpark benchmarks
+run-pyspark: install-deps tables  ## Run PySpark benchmarks
 	$(VENV_BIN)/python -m queries.pyspark
 
-run-dask: .venv tables  ## Run Dask benchmarks
+run-dask: install-deps tables  ## Run Dask benchmarks
 	$(VENV_BIN)/python -m queries.dask
 
-run-modin: .venv tables  ## Run Modin benchmarks
+run-modin: install-deps tables  ## Run Modin benchmarks
 	$(VENV_BIN)/python -m queries.modin
 
 run-all: run-all-polars run-cudf run-fireducks run-duckdb run-pandas run-pyspark run-dask run-modin  ## Run all benchmarks
@@ -146,7 +146,7 @@ run-all-polars: run-polars run-polars-eager run-polars-gpu run-polars-streaming 
 
 run-all-gpu: run-polars run-polars-gpu run-pandas run-cudf  ## Run all GPU-accelerated library benchmarks
 
-plot: .venv  ## Plot results
+plot: install-deps  ## Plot results
 	$(VENV_BIN)/python -m scripts.plot_bars
 
 clean: clean-tpch-dbgen clean-tables  ## Clean up everything
