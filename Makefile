@@ -1,35 +1,61 @@
 .DEFAULT_GOAL := help
 
-PYTHONPATH=
-SHELL=/bin/bash
-VENV=.venv
-VENV_BIN=$(VENV)/bin
+PYTHONPATH =
+SHELL       = /bin/bash
+VENV        = .venv
+VENV_BIN    = $(VENV)/bin
+SCALE_FACTOR ?= 1
 
-.PHONY: do
-run-10-times: run-all
+.PHONY: \
+    run-10-times \
+    install-deps \
+    bump-deps \
+    install-gpu-env \
+    fmt \
+    pre-commit \
+    tables \
+    run-polars \
+    run-fireducks \
+    run-cudf \
+    run-polars-eager \
+    run-polars-gpu \
+    run-polars-streaming \
+    run-polars-no-env \
+    run-polars-gpu-no-env \
+    run-duckdb \
+    run-pandas \
+    run-pyspark \
+    run-dask \
+    run-modin \
+    run-all \
+    run-all-polars \
+    run-all-gpu \
+    plot \
+    clean \
+    clean-tpch-dbgen \
+    clean-tables \
+    help
+
+run-10-times:
 	@for i in {1..10}; do \
 		$(MAKE) run-all; \
 	done
 
-.venv:  ## Set up Python virtual environment and install dependencies
+.venv:  ## Set up Python virtual environment
 	curl -LsSf https://astral.sh/uv/install.sh | sh
 	uv venv --python 3.13 --seed
-	$(MAKE) install-deps
 
-.PHONY: install-deps
 install-deps: .venv  ## Install Python project dependencies
 	@unset CONDA_PREFIX \
 	&& $(VENV_BIN)/python -m pip install --upgrade uv \
 	&& $(VENV_BIN)/uv pip install --compile -r requirements.txt \
 	&& $(VENV_BIN)/uv pip install --compile -r requirements-dev.txt
 
-.PHONY: bump-deps
 bump-deps: .venv  ## Bump Python project dependencies
 	$(VENV_BIN)/python -m pip install --upgrade uv
 	$(VENV_BIN)/uv pip compile requirements.in > requirements.txt
 	$(VENV_BIN)/uv pip compile requirements-dev.in > requirements-dev.txt
 
-.PHONY: install-gpu-env 
 install-gpu-env:
 	@if ! conda info --envs | grep -q "rapids-24.08"; then \
 		echo "Conda environment 'rapids-24.08' not found. Installing..."; \
@@ -40,13 +66,11 @@ install-gpu-env:
 		echo "Conda environment 'rapids-24.08' already exists. Skipping installation."; \
 	fi
 
-.PHONY: fmt
 fmt:  ## Run autoformatting and linting
 	$(VENV_BIN)/ruff check
 	$(VENV_BIN)/ruff format
 	$(VENV_BIN)/mypy
 
-.PHONY: pre-commit
 pre-commit: fmt  ## Run all code quality checks
 
 tables: data/tables/scale-$(SCALE_FACTOR)/.done  ## Alias for the dataset generation
@@ -60,32 +84,25 @@ data/tables/scale-$(SCALE_FACTOR)/.done: .venv  ## Generate data tables if not a
 	rm -rf data/tables/scale-$(SCALE_FACTOR)/*.tbl
 	touch data/tables/scale-$(SCALE_FACTOR)/.done
 
-.PHONY: run-polars
 run-polars: .venv tables  ## Run Polars benchmarks
 	$(VENV_BIN)/python -m queries.polars
 
-.PHONY: run-fireducks
-run-fireducks: .venv tables  ## Run Polars benchmarks
+run-fireducks: .venv tables  ## Run Fireducks benchmarks
 	$(VENV_BIN)/python -m queries.fireducks
 
-.PHONY: run-cudf
-run-cudf: install-gpu-env tables  ## Run Polars benchmarks
+run-cudf: install-gpu-env tables  ## Run cuDF benchmarks
 	conda run -n rapids-24.08 python -m queries.cudf
 
-.PHONY: run-polars-eager
-run-polars-eager: .venv tables  ## Run Polars benchmarks
+run-polars-eager: .venv tables  ## Run Polars benchmarks in eager mode
 	POLARS_EAGER=1 $(VENV_BIN)/python -m queries.polars
 
-.PHONY: run-polars-gpu
-run-polars-gpu: install-gpu-env tables  ## Run Polars benchmarks
+run-polars-gpu: install-gpu-env tables  ## Run Polars GPU benchmarks
 	POLARS_GPU=1 conda run -n rapids-24.08 python -m queries.polars
 
-.PHONY: run-polars-streaming
-run-polars-streaming: .venv tables  ## Run Polars benchmarks
+run-polars-streaming: .venv tables  ## Run Polars streaming benchmarks
 	POLARS_STREAMING=1 $(VENV_BIN)/python -m queries.polars
 
-.PHONY: run-polars-no-env
-run-polars-no-env:  ## Run Polars benchmarks
+run-polars-no-env:  ## Run Polars benchmarks without virtual environment
 	$(MAKE) -C tpch-dbgen dbgen
 	cd tpch-dbgen && ./dbgen -f -s $(SCALE_FACTOR) && cd ..
 	mkdir -p "data/tables/scale-$(SCALE_FACTOR)"
@@ -94,61 +111,46 @@ run-polars-no-env:  ## Run Polars benchmarks
 	rm -rf data/tables/scale-$(SCALE_FACTOR)/*.tbl
 	python -m queries.polars
 
-.PHONY: run-polars-gpu-no-env
-run-polars-gpu-no-env: run-polars-no-env ## Run Polars CPU and GPU benchmarks
+run-polars-gpu-no-env: run-polars-no-env  ## Run Polars CPU and GPU benchmarks without virtual environment
 	RUN_POLARS_GPU=true CUDA_MODULE_LOADING=EAGER python -m queries.polars
 
-.PHONY: run-duckdb tables
-run-duckdb: .venv  ## Run DuckDB benchmarks
+run-duckdb: .venv tables  ## Run DuckDB benchmarks
 	$(VENV_BIN)/python -m queries.duckdb
 
-.PHONY: run-pandas tables
-run-pandas: .venv  ## Run pandas benchmarks
+run-pandas: .venv tables  ## Run pandas benchmarks
 	$(VENV_BIN)/python -m queries.pandas
 
-.PHONY: run-pyspark tables
-run-pyspark: .venv  ## Run PySpark benchmarks
+run-pyspark: .venv tables  ## Run PySpark benchmarks
 	$(VENV_BIN)/python -m queries.pyspark
 
-.PHONY: run-dask tables
-run-dask: .venv  ## Run Dask benchmarks
+run-dask: .venv tables  ## Run Dask benchmarks
 	$(VENV_BIN)/python -m queries.dask
 
-.PHONY: run-modin tables
-run-modin: .venv  ## Run Modin benchmarks
+run-modin: .venv tables  ## Run Modin benchmarks
 	$(VENV_BIN)/python -m queries.modin
 
-.PHONY: run-all
 run-all: run-all-polars run-cudf run-fireducks run-duckdb run-pandas run-pyspark run-dask run-modin  ## Run all benchmarks
 
-.PHONY: run-all-polars
-run-all-polars: run-polars run-polars-eager run-polars-gpu run-polars-streaming ## Run all Polars benchmarks
+run-all-polars: run-polars run-polars-eager run-polars-gpu run-polars-streaming  ## Run all Polars benchmarks
 
-.PHONY: run-all-gpu
-run-all-gpu: run-polars run-polars-gpu run-pandas run-cudf  ## Run all GPU accelarated library benchmarks
+run-all-gpu: run-polars run-polars-gpu run-pandas run-cudf  ## Run all GPU-accelerated library benchmarks
 
-.PHONY: plot
 plot: .venv  ## Plot results
 	$(VENV_BIN)/python -m scripts.plot_bars
 
-.PHONY: clean
-clean:  clean-tpch-dbgen clean-tables  ## Clean up everything
-	$(VENV_BIN)/ruff clean
+clean: clean-tpch-dbgen clean-tables  ## Clean up everything
 	@rm -rf .mypy_cache/
 	@rm -rf .venv/
 	@rm -rf output/
 	@rm -rf spark-warehouse/
 
-.PHONY: clean-tpch-dbgen
 clean-tpch-dbgen:  ## Clean up TPC-H folder
 	@$(MAKE) -C tpch-dbgen clean
 	@rm -rf tpch-dbgen/*.tbl
 
-.PHONY: clean-tables
 clean-tables:  ## Clean up data tables
 	@rm -rf data/tables/
 
-.PHONY: help
 help:  ## Display this help screen
 	@echo -e "\033[1mAvailable commands:\033[0m"
-	@grep -E '^[a-z.A-Z_0-9-]+:.*?## .*$$' $(MAKEFILE_LIST) | awk 'BEGIN {FS = ":.*?## "}; {printf "  \033[36m%-22s\033[0m %s\n", $$1, $$2}' | sort
+	@grep -E '^[a-zA-Z0-9_\.-]+:.*?## .*$$' $(MAKEFILE_LIST) | awk 'BEGIN {FS = ":.*?## "}; {printf "  \033[36m%-22s\033[0m %s\n", $$1, $$2}' | sort
