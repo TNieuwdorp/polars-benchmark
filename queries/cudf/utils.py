@@ -2,8 +2,9 @@ from __future__ import annotations
 
 from typing import TYPE_CHECKING, Any
 
-import rmm
 import cudf.pandas
+import rmm
+
 cudf.pandas.install()
 import pandas as pd
 

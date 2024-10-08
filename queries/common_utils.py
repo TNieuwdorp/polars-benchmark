@@ -2,11 +2,11 @@ from __future__ import annotations
 
 import re
 import sys
+from datetime import datetime
 from importlib.metadata import version
 from pathlib import Path
 from subprocess import run
 from typing import TYPE_CHECKING, Any
-from datetime import datetime
 
 from linetimer import CodeTimer
 

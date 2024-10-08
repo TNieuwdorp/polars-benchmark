@@ -1,7 +1,9 @@
 from __future__ import annotations
 
 from typing import TYPE_CHECKING
+
 import cudf.pandas
+
 cudf.pandas.install()
 from queries.cudf import utils
 

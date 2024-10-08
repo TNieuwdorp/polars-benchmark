@@ -62,7 +62,7 @@ def prepare_timings(
 ) -> pl.DataFrame:
     # Drop scale_factor as it's not needed
     timings = timings.drop("scale_factor")
-    
+
     # Filter the right IO type and include IO option
     timings = timings.filter(pl.col("io_type") == settings.run.io_type)
 
