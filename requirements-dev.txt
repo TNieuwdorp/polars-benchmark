@@ -4,13 +4,13 @@ mypy==1.11.2
     # via -r requirements-dev.in
 mypy-extensions==1.0.0
     # via mypy
-numpy==2.1.2
+numpy==2.1.1
     # via pandas-stubs
 pandas-stubs==2.2.2.240909
     # via -r requirements-dev.in
-ruff==0.6.9
+ruff==0.6.8
     # via -r requirements-dev.in
-types-pytz==2024.2.0.20241003
+types-pytz==2024.2.0.20240913
     # via pandas-stubs
 typing-extensions==4.12.2
     # via mypy
