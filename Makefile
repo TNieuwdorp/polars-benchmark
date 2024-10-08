@@ -140,11 +140,11 @@ run-dask: install-deps tables  ## Run Dask benchmarks
 run-modin: install-deps tables  ## Run Modin benchmarks
 	$(VENV_BIN)/python -m queries.modin
 
-run-all: run-all-polars run-cudf run-fireducks run-duckdb run-pandas run-pyspark run-dask run-modin  ## Run all benchmarks
+run-all: run-all-polars run-duckdb run-pandas run-pyspark run-dask run-modin  ## Run all benchmarks
 
 run-all-polars: run-polars run-polars-eager run-polars-gpu run-polars-streaming  ## Run all Polars benchmarks
 
-run-all-gpu: run-polars run-polars-gpu run-pandas run-cudf  ## Run all GPU-accelerated library benchmarks
+run-all-gpu: run-polars run-polars-gpu run-pandas #run-cudf  ## Run all GPU-accelerated library benchmarks
 
 plot: install-deps  ## Plot results
 	$(VENV_BIN)/python -m scripts.plot_bars
