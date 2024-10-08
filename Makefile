@@ -41,6 +41,7 @@ run-10-times:
 		echo "Error: HARDWARE environment variable is not set."; \
 		exit 1; \
 	fi; \
+	set -euo pipefail; \
 	for i in {1..10}; do \
 		for scale in 0.1 1.0 5.0 10.0 15.0 20.0 25.0 30.0; do \
 			echo "Running benchmarks for SCALE_FACTOR=$$scale (iteration $$i)"; \
