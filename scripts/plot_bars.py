@@ -27,7 +27,7 @@ settings = Settings()
 COLORS = {
     "polars": "#0075FF",
     "polars-eager": "#00e695",
-    "polars-gpu": "#00e604",
+    "polars-gpu-cuda-async": "#00e604",
     "polars-streaming": "#001be6",
     "cudf": "#7b00e6",
     "fireducks": "#d80000",
@@ -41,7 +41,7 @@ COLORS = {
 SOLUTION_NAME_MAP = {
     "polars": "Polars",
     "polars-eager": "Polars - Eager",
-    "polars-gpu": "Polars - GPU",
+    "polars-gpu-cuda-async": "Polars - GPU",
     "polars-streaming": "Polars - Streaming",
     "cudf": "cuDF",
     "fireducks": "Fireducks",

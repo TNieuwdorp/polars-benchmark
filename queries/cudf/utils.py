@@ -2,6 +2,7 @@ from __future__ import annotations
 
 from typing import TYPE_CHECKING, Any
 
+import rmm
 import cudf.pandas
 cudf.pandas.install()
 import pandas as pd
@@ -82,6 +83,12 @@ def get_part_supp_ds() -> pd.DataFrame:
 
 
 def run_query(query_number: int, query: Callable[..., Any]) -> None:
+    # Must make sure to create memory resource on the requested device
+    free_memory, _ = rmm.mr.available_device_memory()
+    initial_pool_size = 256 * (int(free_memory * 0.8) // 256)
+    pool =  rmm.mr.CudaAsyncMemoryResource(initial_pool_size=initial_pool_size)
+    rmm.mr.set_current_device_resource(pool)
+
     run_query_generic(
         query, query_number, library_name="cudf", library_version=cudf.__version__, query_checker=check_query_result_pd
     )

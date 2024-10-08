@@ -28,7 +28,7 @@ install-gpu-env:
 		echo "Conda environment 'rapids-24.08' not found. Installing..."; \
 		conda create -n rapids-24.08 -c rapidsai -c conda-forge -c nvidia \
 			cudf=24.08 python=3.11 'cuda-version>=12.0,<=12.5' --yes; \
-		conda run -n rapids-24.08 pip install -r requirements.in; \
+		conda run -n rapids-24.08 pip install -r requirements-polars-gpu.txt; \
 	else \
 		echo "Conda environment 'rapids-24.08' already exists. Skipping installation."; \
 	fi

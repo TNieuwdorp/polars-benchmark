@@ -130,11 +130,12 @@ def run_query(query_number: int, lf: pl.LazyFrame) -> None:
     eager = settings.run.polars_eager
     gpu = settings.run.polars_gpu
     streaming = settings.run.polars_streaming
+    engine = obtain_engine_config()
+    _preload_engine(engine)  # Eager load engine backend, so we don't time that.
 
     if eager:
         library_name = "polars-eager"
     elif gpu: 
-        engine = obtain_engine_config()
         library_name = f"polars-gpu-{settings.run.use_rmm_mr}"
     elif streaming:
         library_name = "polars-streaming"
@@ -147,8 +148,6 @@ def run_query(query_number: int, lf: pl.LazyFrame) -> None:
     if settings.run.polars_show_plan:
         print(lf.explain(streaming=streaming, optimized=eager))
     
-    # Eager load engine backend, so we don't time that.
-    _preload_engine(engine)
     query = partial(
         lf.collect, streaming=streaming, no_optimization=eager, engine=engine
     )
