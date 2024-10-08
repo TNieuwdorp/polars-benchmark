@@ -53,6 +53,7 @@ run-10-times:
 
 .venv:  ## Set up Python virtual environment
 	curl -LsSf https://astral.sh/uv/install.sh | sh
+	export PATH=$$HOME/.cargo/bin:$$PATH  
 	uv venv --python 3.13 --seed
 
 install-deps: .venv  ## Install Python project dependencies
