@@ -140,7 +140,7 @@ run-dask: install-deps tables  ## Run Dask benchmarks
 run-modin: install-deps tables  ## Run Modin benchmarks
 	$(VENV_BIN)/python -m queries.modin
 
-run-all: run-all-polars run-cudf run-fireducks run-duckdb run-pandas run-pyspark run-dask run-modin  ## Run all benchmarks
+run-all: run-all-polars run-cudf run-fireducks run-duckdb run-pandas run-pyspark run-dask #run-modin  ## Run all benchmarks
 
 run-all-polars: run-polars run-polars-eager run-polars-gpu run-polars-streaming  ## Run all Polars benchmarks
 

@@ -1,7 +1,7 @@
 dask[dataframe]
 dask-expr
 duckdb
-modin[ray]
+#modin[ray]
 pandas>=2.0
 polars
 pyspark
