@@ -37,9 +37,18 @@ SCALE_FACTOR ?= 1
     help
 
 run-10-times:
-	@for i in {1..10}; do \
-		$(MAKE) run-all; \
-	done
+	@if [ -z "$(HARDWARE)" ]; then \
+		echo "Error: HARDWARE environment variable is not set."; \
+		exit 1; \
+	fi; \
+	for i in {1..10}; do \
+		for scale in 0.1 1.0 5.0 10.0 15.0 20.0 25.0 30.0; do \
+			echo "Running benchmarks for SCALE_FACTOR=$$scale (iteration $$i)"; \
+			SCALE_FACTOR=$$scale $(MAKE) run-all; \
+			mv output/run/timings.csv output/run/timings-$(HARDWARE)-scale-$$scale-iteration-$$i.csv; \
+		done; \
+	done; \
+	unset HARDWARE
 
 .venv:  ## Set up Python virtual environment
 	curl -LsSf https://astral.sh/uv/install.sh | sh
