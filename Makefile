@@ -5,8 +5,15 @@ SHELL=/bin/bash
 VENV=.venv
 VENV_BIN=$(VENV)/bin
 
+.PHONY: do
+run-10-times: run-all
+	@for i in {1..10}; do \
+		$(MAKE) run-all; \
+	done
+
 .venv:  ## Set up Python virtual environment and install dependencies
-	python3 -m venv $(VENV)
+	curl -LsSf https://astral.sh/uv/install.sh | sh
+	uv venv --python 3.13 --seed
 	$(MAKE) install-deps
 
 .PHONY: install-deps
