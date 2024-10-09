@@ -6,7 +6,7 @@ import sys
 from datetime import datetime
 from importlib.metadata import version
 from pathlib import Path
-from subprocess import run
+from subprocess import TimeoutExpired, run
 from typing import TYPE_CHECKING, Any
 
 from linetimer import CodeTimer
@@ -85,9 +85,12 @@ def execute_all(library_name: str) -> None:
 
     with CodeTimer(name=f"Overall execution of ALL {library_name} queries", unit="s"):
         for i in query_numbers:
-            run([sys.executable, "-m", f"queries.{library_name}.q{i}"],
-                timeout=min(60, float(os.environ.get("SCALE_FACTOR", "1.0")) / 5 * 60)
-                )
+            try:
+                run([sys.executable, "-m", f"queries.{library_name}.q{i}"],
+                    timeout=max(60, float(os.environ.get("SCALE_FACTOR", "1.0")) / 5 * 60)
+                    )
+            except TimeoutExpired as e:
+                print(e)
 
 
 def _get_query_numbers(library_name: str) -> list[int]:
