@@ -3,13 +3,14 @@ from __future__ import annotations
 from typing import TYPE_CHECKING, Any
 
 import cudf.pandas
+import cudf
 import rmm
 
 cudf.pandas.install()
 import pandas as pd
 
 from queries.common_utils import (
-    check_query_result_pd,
+    check_query_result_cudf,
     get_table_path,
     on_second_call,
     run_query_generic,
@@ -26,18 +27,17 @@ pd.options.mode.copy_on_write = True
 
 def _read_ds(table_name: str) -> pd.DataFrame:
     path = get_table_path(table_name)
-
     if settings.run.io_type in ("parquet", "skip"):
-        return pd.read_parquet(path, dtype_backend="pyarrow")
+        return cudf.read_parquet(path)
     elif settings.run.io_type == "csv":
-        df = pd.read_csv(path, dtype_backend="pyarrow")
+        df = cudf.read_csv(path)
         # TODO: This is slow - we should use the known schema to read dates directly
         for c in df.columns:
             if c.endswith("date"):
                 df[c] = df[c].astype("date32[day][pyarrow]")  # type: ignore[call-overload]
         return df
     elif settings.run.io_type == "feather":
-        return pd.read_feather(path, dtype_backend="pyarrow")
+        return cudf.read_feather(path)
     else:
         msg = f"unsupported file type: {settings.run.io_type!r}"
         raise ValueError(msg)
@@ -84,12 +84,6 @@ def get_part_supp_ds() -> pd.DataFrame:
 
 
 def run_query(query_number: int, query: Callable[..., Any]) -> None:
-    # Must make sure to create memory resource on the requested device
-    free_memory, _ = rmm.mr.available_device_memory()
-    initial_pool_size = 256 * (int(free_memory * 0.8) // 256)
-    pool =  rmm.mr.CudaAsyncMemoryResource(initial_pool_size=initial_pool_size)
-    rmm.mr.set_current_device_resource(pool)
-
     run_query_generic(
-        query, query_number, library_name="cudf", library_version=cudf.__version__, query_checker=check_query_result_pd
+        query, query_number, library_name="cudf", library_version=cudf.__version__, query_checker=check_query_result_cudf
     )

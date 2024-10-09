@@ -4,8 +4,9 @@ import cudf.pandas
 
 cudf.pandas.install()
 import pandas as pd
+import numpy as np
 
-from queries.pandas import utils
+from queries.cudf import utils
 
 Q_NUM = 12
 
@@ -26,8 +27,8 @@ def q() -> None:
 
         var1 = "MAIL"
         var2 = "SHIP"
-        var3 = pd.Timestamp("1994-01-01")
-        var4 = pd.Timestamp("1995-01-01")
+        var3 = np.datetime64("1994-01-01")
+        var4 = np.datetime64("1995-01-01")
 
         # Join orders and lineitem
         merged_df = orders_ds.merge(line_item_ds, left_on="o_orderkey", right_on="l_orderkey")
@@ -48,10 +49,7 @@ def q() -> None:
         result_df = (
             filtered_df
             .groupby("l_shipmode", as_index=False)
-            .agg(
-                high_line_count=pd.NamedAgg(column="high_line_count", aggfunc="sum"),
-                low_line_count=pd.NamedAgg(column="low_line_count", aggfunc="sum")
-            )
+            .agg({"high_line_count": "sum", "low_line_count": "sum"})
             .sort_values(by="l_shipmode")
         )
 

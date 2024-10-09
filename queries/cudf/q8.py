@@ -1,16 +1,15 @@
 from __future__ import annotations
 
-from datetime import date
-
 import cudf.pandas
 
 cudf.pandas.install()
+import cudf
 import pandas as pd
+import numpy as np
 
 from queries.cudf import utils
 
 Q_NUM = 8
-
 
 def q() -> None:
     customer_ds = utils.get_customer_ds
@@ -21,7 +20,7 @@ def q() -> None:
     region_ds = utils.get_region_ds
     supplier_ds = utils.get_supplier_ds
 
-    # first call one time to cache in case we don't include the IO times
+    # First call to cache data
     customer_ds()
     line_item_ds()
     nation_ds()
@@ -38,6 +37,7 @@ def q() -> None:
         nonlocal part_ds
         nonlocal region_ds
         nonlocal supplier_ds
+
         customer_ds = customer_ds()
         line_item_ds = line_item_ds()
         nation_ds = nation_ds()
@@ -49,45 +49,53 @@ def q() -> None:
         var1 = "BRAZIL"
         var2 = "AMERICA"
         var3 = "ECONOMY ANODIZED STEEL"
-        var4 = date(1995, 1, 1)
-        var5 = date(1996, 12, 31)
+        var4 = np.datetime64("1995-01-01")
+        var5 = np.datetime64("1996-12-31")
 
-        n1 = nation_ds.loc[:, ["n_nationkey", "n_regionkey"]]
-        n2 = nation_ds.loc[:, ["n_nationkey", "n_name"]]
+        # Filter region and nation n1
+        region_ds = region_ds[region_ds["r_name"] == var2][["r_regionkey"]]
+        n1 = nation_ds[nation_ds["n_regionkey"].isin(region_ds["r_regionkey"])][["n_nationkey"]]
+        # Filter customers in nations in the region
+        customer_ds = customer_ds[customer_ds["c_nationkey"].isin(n1["n_nationkey"])][["c_custkey"]]
+        # Filter orders in date range and from customers in the region
+        orders_ds = orders_ds[
+            (orders_ds["o_orderdate"] >= var4) & (orders_ds["o_orderdate"] <= var5) &
+            (orders_ds["o_custkey"].isin(customer_ds["c_custkey"]))
+        ][["o_orderkey", "o_orderdate"]]
+        # Filter part
+        part_ds = part_ds[part_ds["p_type"] == var3][["p_partkey"]]
+        # n2 is the supplier nation
+        n2 = nation_ds[["n_nationkey", "n_name"]]
+        # Supplier dataset
+        supplier_ds = supplier_ds[["s_suppkey", "s_nationkey"]]
 
-        jn1 = part_ds.merge(line_item_ds, left_on="p_partkey", right_on="l_partkey")
+        # Merge operations
+        jn1 = part_ds.merge(line_item_ds, left_on="p_partkey", right_on="l_partkey")[[
+            "l_suppkey", "l_orderkey", "l_extendedprice", "l_discount", "l_partkey"
+        ]]
         jn2 = jn1.merge(supplier_ds, left_on="l_suppkey", right_on="s_suppkey")
         jn3 = jn2.merge(orders_ds, left_on="l_orderkey", right_on="o_orderkey")
-        jn4 = jn3.merge(customer_ds, left_on="o_custkey", right_on="c_custkey")
-        jn5 = jn4.merge(n1, left_on="c_nationkey", right_on="n_nationkey")
-        jn6 = jn5.merge(region_ds, left_on="n_regionkey", right_on="r_regionkey")
+        jn4 = jn3.merge(n2, left_on="s_nationkey", right_on="n_nationkey")
 
-        jn6 = jn6[(jn6["r_name"] == var2)]
+        # Compute volume and o_year
+        jn4["o_year"] = jn4["o_orderdate"].dt.year
+        jn4["volume"] = jn4["l_extendedprice"] * (1.0 - jn4["l_discount"])
+        jn4 = jn4.rename(columns={"n_name": "nation"})
 
-        jn7 = jn6.merge(n2, left_on="s_nationkey", right_on="n_nationkey")
+        # Calculate total volume per year
+        total_volume = jn4.groupby("o_year")["volume"].sum().reset_index(name='total_volume')
 
-        jn7 = jn7[(jn7["o_orderdate"] >= var4) & (jn7["o_orderdate"] <= var5)]
-        jn7 = jn7[jn7["p_type"] == var3]
+        # Filter for nation == var1 (BRAZIL)
+        brazil_volume = jn4[jn4["nation"] == var1].groupby("o_year")["volume"].sum().reset_index(name='brazil_volume')
 
-        jn7["o_year"] = jn7["o_orderdate"].dt.year
-        jn7["volume"] = jn7["l_extendedprice"] * (1.0 - jn7["l_discount"])
-        jn7 = jn7.rename(columns={"n_name": "nation"})
+        # Merge and compute market share
+        result_df = total_volume.merge(brazil_volume, on='o_year', how='left').fillna(0)
+        result_df["mkt_share"] = (result_df["brazil_volume"] / result_df["total_volume"]).round(2)
+        result_df = result_df[["o_year", "mkt_share"]].sort_values("o_year")
 
-        def udf(df: pd.DataFrame) -> float:
-            demonimator: float = df["volume"].sum()
-            df = df[df["nation"] == var1]
-            numerator: float = df["volume"].sum()
-            return round(numerator / demonimator, 2)
-
-        gb = jn7.groupby("o_year", as_index=False)
-        agg = gb.apply(udf, include_groups=False)
-        agg.columns = ["o_year", "mkt_share"]
-        result_df = agg.sort_values("o_year")
-
-        return result_df  # type: ignore[no-any-return]
+        return result_df
 
     utils.run_query(Q_NUM, query)
-
 
 if __name__ == "__main__":
     q()

@@ -6,6 +6,7 @@ import cudf.pandas
 
 cudf.pandas.install()
 import pandas as pd
+import numpy as np
 
 from queries.cudf import utils
 
@@ -26,8 +27,8 @@ def q() -> None:
         line_item_ds = line_item_ds()
         orders_ds = orders_ds()
 
-        var1 = date(1993, 7, 1)
-        var2 = date(1993, 10, 1)
+        var1 = np.datetime64("1993-07-01")
+        var2 = np.datetime64("1993-10-01")
 
         jn = line_item_ds.merge(orders_ds, left_on="l_orderkey", right_on="o_orderkey")
 
@@ -37,11 +38,11 @@ def q() -> None:
         jn = jn.drop_duplicates(subset=["o_orderpriority", "l_orderkey"])
 
         gb = jn.groupby("o_orderpriority", as_index=False)
-        agg = gb.agg(order_count=pd.NamedAgg(column="o_orderkey", aggfunc="count"))
+        agg = gb.agg({'o_orderkey': 'count'}).rename(columns={'o_orderkey': 'order_count'})
 
         result_df = agg.sort_values(["o_orderpriority"])
 
-        return result_df  # type: ignore[no-any-return]
+        return result_df
 
     utils.run_query(Q_NUM, query)
 

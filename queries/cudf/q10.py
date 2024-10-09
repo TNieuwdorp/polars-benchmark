@@ -4,8 +4,9 @@ import cudf.pandas
 
 cudf.pandas.install()
 import pandas as pd
+import numpy as np
 
-from queries.pandas import utils
+from queries.cudf import utils
 
 Q_NUM = 10
 
@@ -32,45 +33,43 @@ def q() -> None:
         nation_ds = nation_ds()
         orders_ds = orders_ds()
 
-        var1 = pd.Timestamp("1993-10-01")
-        var2 = pd.Timestamp("1994-01-01")
+        var1 = np.datetime64("1993-10-01")
+        var2 = np.datetime64("1994-01-01")
 
-        # Join customer and orders
-        merged_df = customer_ds.merge(orders_ds, left_on="c_custkey", right_on="o_custkey")
-        # Join lineitem
+        # Filter orders within the date range
+        orders_ds = orders_ds[
+            (orders_ds["o_orderdate"] >= var1) &
+            (orders_ds["o_orderdate"] < var2)
+        ][["o_orderkey", "o_custkey"]]
+
+        # Filter lineitem for l_returnflag == 'R'
+        line_item_ds = line_item_ds[line_item_ds["l_returnflag"] == "R"][["l_orderkey", "l_extendedprice", "l_discount"]]
+
+        # Merge customer and nation
+        customer_ds = customer_ds.merge(nation_ds, left_on="c_nationkey", right_on="n_nationkey")
+        customer_ds = customer_ds[["c_custkey", "c_name", "c_acctbal", "c_phone", "n_name", "c_address", "c_comment"]]
+
+        # Join operations
+        merged_df = orders_ds.merge(customer_ds, left_on="o_custkey", right_on="c_custkey")
         merged_df = merged_df.merge(line_item_ds, left_on="o_orderkey", right_on="l_orderkey")
-        # Join nation
-        merged_df = merged_df.merge(nation_ds, left_on="c_nationkey", right_on="n_nationkey")
 
-        # Filter orders within the date range and l_returnflag == 'R'
-        filtered_df = merged_df[
-            (merged_df["o_orderdate"] >= var1) &
-            (merged_df["o_orderdate"] < var2) &
-            (merged_df["l_returnflag"] == "R")
-        ]
+        # Calculate revenue
+        merged_df["revenue"] = merged_df["l_extendedprice"] * (1 - merged_df["l_discount"])
 
         # Group by relevant columns and calculate revenue
         grouped_df = (
-            filtered_df
-            .assign(revenue=lambda x: x["l_extendedprice"] * (1 - x["l_discount"]))
-            .groupby([
-                "c_custkey", "c_name", "c_acctbal", "c_phone", "n_name", "c_address", "c_comment"
-            ], as_index=False)
+            merged_df
+            .groupby(["c_custkey", "c_name", "c_acctbal", "c_phone", "n_name", "c_address", "c_comment"], as_index=False)
             .agg({"revenue": "sum"})
-        )
-
-        # Round the 'revenue' column to 2 decimal places
-        grouped_df["revenue"] = grouped_df["revenue"].round(2)
-
-        # Select the relevant columns and sort by revenue
-        result_df = (
-            grouped_df
+            .assign(revenue=lambda df: df["revenue"].round(2))
             .sort_values(by="revenue", ascending=False)
             .head(20)
         )
 
-        return result_df
+        # Reorder columns to match expected output
+        grouped_df = grouped_df[['c_custkey', 'c_name', 'revenue', 'c_acctbal', 'n_name', 'c_address', 'c_phone', 'c_comment']]
 
+        return grouped_df
 
     utils.run_query(Q_NUM, query)
 

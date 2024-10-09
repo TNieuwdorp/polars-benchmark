@@ -1,16 +1,15 @@
 from __future__ import annotations
 
-from datetime import date
-
 import cudf.pandas
 
 cudf.pandas.install()
+import cudf
 import pandas as pd
+import numpy as np
 
 from queries.cudf import utils
 
 Q_NUM = 7
-
 
 def q() -> None:
     nation_ds = utils.get_nation_ds
@@ -19,7 +18,7 @@ def q() -> None:
     orders_ds = utils.get_orders_ds
     supplier_ds = utils.get_supplier_ds
 
-    # first call one time to cache in case we don't include the IO times
+    # First call to cache data
     nation_ds()
     customer_ds()
     line_item_ds()
@@ -32,6 +31,7 @@ def q() -> None:
         nonlocal line_item_ds
         nonlocal orders_ds
         nonlocal supplier_ds
+
         nation_ds = nation_ds()
         customer_ds = customer_ds()
         line_item_ds = line_item_ds()
@@ -40,11 +40,11 @@ def q() -> None:
 
         var1 = "FRANCE"
         var2 = "GERMANY"
-        var3 = date(1995, 1, 1)
-        var4 = date(1996, 12, 31)
+        var3 = np.datetime64("1995-01-01")
+        var4 = np.datetime64("1996-12-31")
 
-        n1 = nation_ds[(nation_ds["n_name"] == var1)]
-        n2 = nation_ds[(nation_ds["n_name"] == var2)]
+        n1 = nation_ds[(nation_ds["n_name"] == var1)][["n_nationkey", "n_name"]]
+        n2 = nation_ds[(nation_ds["n_name"] == var2)][["n_nationkey", "n_name"]]
 
         # Part 1
         jn1 = customer_ds.merge(n1, left_on="c_nationkey", right_on="n_nationkey")
@@ -64,22 +64,23 @@ def q() -> None:
         jn5 = jn4.merge(n1, left_on="s_nationkey", right_on="n_nationkey")
         df2 = jn5.rename(columns={"n_name": "supp_nation"})
 
-        # Combine
-        total = pd.concat([df1, df2])
+        # Combine dataframes
+        total = cudf.concat([df1, df2])
 
+        # Filter and compute volume
         total = total[(total["l_shipdate"] >= var3) & (total["l_shipdate"] <= var4)]
         total["volume"] = total["l_extendedprice"] * (1.0 - total["l_discount"])
         total["l_year"] = total["l_shipdate"].dt.year
 
-        gb = total.groupby(["supp_nation", "cust_nation", "l_year"], as_index=False)
-        agg = gb.agg(revenue=pd.NamedAgg(column="volume", aggfunc="sum"))
+        # Group and aggregate
+        gb = total.groupby(["supp_nation", "cust_nation", "l_year"])
+        agg = gb["volume"].sum().reset_index(name='revenue')
 
         result_df = agg.sort_values(by=["supp_nation", "cust_nation", "l_year"])
 
-        return result_df  # type: ignore[no-any-return]
+        return result_df
 
     utils.run_query(Q_NUM, query)
-
 
 if __name__ == "__main__":
     q()

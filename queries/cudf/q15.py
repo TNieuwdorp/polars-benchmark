@@ -4,8 +4,9 @@ import cudf.pandas
 
 cudf.pandas.install()
 import pandas as pd
+import numpy as np
 
-from queries.pandas import utils
+from queries.cudf import utils
 
 Q_NUM = 15
 
@@ -23,8 +24,8 @@ def q() -> None:
         line_item_ds = line_item_ds()
         supplier_ds = supplier_ds()
 
-        var1 = pd.Timestamp("1996-01-01")
-        var2 = pd.Timestamp("1996-04-01")
+        var1 = np.datetime64("1996-01-01")
+        var2 = np.datetime64("1996-04-01")
 
         # Filter the DataFrame based on ship date
         filtered_line_item_ds = line_item_ds[
@@ -37,10 +38,8 @@ def q() -> None:
         )
 
         # Calculate total revenue for each supplier
-        revenue_df = filtered_line_item_ds.groupby("l_suppkey", as_index=False).agg(
-            total_revenue=pd.NamedAgg(column="revenue", aggfunc="sum")
-        )
-        revenue_df = revenue_df.rename(columns={"l_suppkey": "supplier_no"})
+        revenue_df = filtered_line_item_ds.groupby("l_suppkey", as_index=False).agg({"revenue": "sum"})
+        revenue_df = revenue_df.rename(columns={"revenue": "total_revenue", "l_suppkey": "supplier_no"})
 
         # Join supplier with revenue and filter for max total_revenue
         merged_df = supplier_ds.merge(

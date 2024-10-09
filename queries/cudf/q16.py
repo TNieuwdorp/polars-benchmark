@@ -5,7 +5,7 @@ import cudf.pandas
 cudf.pandas.install()
 import pandas as pd
 
-from queries.pandas import utils
+from queries.cudf import utils
 
 Q_NUM = 16
 
@@ -43,15 +43,15 @@ def q() -> None:
                       (merged_df["p_size"].isin([49, 14, 23, 45, 19, 3, 36, 9]))]
         )
 
-        # Left join with supplier_filtered and filter out rows with matching ps_suppkey
-        filtered_df = filtered_df.merge(supplier_filtered, on="ps_suppkey", how="left", indicator=True)
-        filtered_df = filtered_df[filtered_df["_merge"] == "left_only"].drop(columns="_merge")
+        # Filter out rows with matching ps_suppkey
+        filtered_df = filtered_df[~filtered_df["ps_suppkey"].isin(supplier_filtered["ps_suppkey"])]
 
         # Group by "p_brand", "p_type", "p_size" and count unique suppliers
         result_df = (
             filtered_df
             .groupby(["p_brand", "p_type", "p_size"], as_index=False)
-            .agg(supplier_cnt=pd.NamedAgg(column="ps_suppkey", aggfunc="nunique"))
+            .agg({"ps_suppkey": "nunique"})
+            .rename(columns={"ps_suppkey": "supplier_cnt"})
             .sort_values(by=["supplier_cnt", "p_brand", "p_type", "p_size"], ascending=[False, True, True, True])
         )
 

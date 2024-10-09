@@ -5,7 +5,7 @@ import cudf.pandas
 cudf.pandas.install()
 import pandas as pd
 
-from queries.pandas import utils
+from queries.cudf import utils
 
 Q_NUM = 22
 
@@ -36,18 +36,21 @@ def q() -> None:
         # Select unique customer keys from orders
         q3 = orders_ds["o_custkey"].drop_duplicates().to_frame(name="c_custkey")
 
-        # Left join q1 with q3 and filter for customers without orders and with c_acctbal > avg_acctbal
-        q_final = q1.merge(q3, on="c_custkey", how="left", indicator=True)
-        q_final = q_final[q_final["_merge"] == "left_only"].drop(columns="_merge")
+        # Filter q1 for c_custkeys not in q3
+        q_final = q1[~q1["c_custkey"].isin(q3["c_custkey"])]
         q_final = q_final[q_final["c_acctbal"] > q2]
 
         # Group by country code and aggregate numcust and totacctbal
-        result_df = (
-            q_final.groupby("cntrycode", as_index=False)
-            .agg(numcust=("c_acctbal", "count"), totacctbal=("c_acctbal", "sum"))
-            .assign(totacctbal=lambda x: x["totacctbal"].round(2))
-            .sort_values(by="cntrycode")
-        )
+        grouped = q_final.groupby("cntrycode", as_index=False).agg({"c_acctbal": ["count", "sum"]})
+
+        # Flatten MultiIndex columns
+        grouped.columns = ['cntrycode', 'numcust', 'totacctbal']
+
+        # Round 'totacctbal'
+        grouped['totacctbal'] = grouped['totacctbal'].round(2)
+
+        # Sort by 'cntrycode'
+        result_df = grouped.sort_values(by="cntrycode")
 
         return result_df
 

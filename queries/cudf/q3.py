@@ -6,6 +6,7 @@ import cudf.pandas
 
 cudf.pandas.install()
 import pandas as pd
+import numpy as np
 
 from queries.cudf import utils
 
@@ -31,7 +32,7 @@ def q() -> None:
         orders_ds = orders_ds()
 
         var1 = "BUILDING"
-        var2 = date(1995, 3, 15)
+        var2 = np.datetime64("1995-03-15")
 
         fcustomer = customer_ds[customer_ds["c_mktsegment"] == var1]
 

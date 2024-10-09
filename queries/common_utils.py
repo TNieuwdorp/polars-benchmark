@@ -10,6 +10,7 @@ from subprocess import TimeoutExpired, run
 from typing import TYPE_CHECKING, Any
 
 from linetimer import CodeTimer
+import cudf
 
 from settings import Settings
 
@@ -156,6 +157,12 @@ def check_query_result_pd(result: pd.DataFrame, query_number: int) -> None:
     assert_frame_equal(result.reset_index(drop=True), expected, check_dtype=False)
 
 
+def check_query_result_cudf(result: pd.DataFrame, query_number: int) -> None:
+    """Assert that the cudf result of the query is correct."""
+    expected = _get_query_answer_cudf(query_number)
+    cudf.testing.assert_frame_equal(result.reset_index(drop=True), expected, check_dtype=False)
+
+
 def _get_query_answer_pl(query: int) -> pl.DataFrame:
     """Read the true answer to the query from disk as a Polars DataFrame."""
     from polars import read_parquet
@@ -170,3 +177,9 @@ def _get_query_answer_pd(query: int) -> pd.DataFrame:
 
     path = settings.paths.answers / f"q{query}.parquet"
     return read_parquet(path, dtype_backend="pyarrow")
+
+
+def _get_query_answer_cudf(query: int) -> pd.DataFrame:
+    """Read the true answer to the query from disk as a cudf DataFrame."""
+    path = settings.paths.answers / f"q{query}.parquet"
+    return cudf.read_parquet(path)

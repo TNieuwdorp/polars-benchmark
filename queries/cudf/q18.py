@@ -5,7 +5,7 @@ import cudf.pandas
 cudf.pandas.install()
 import pandas as pd
 
-from queries.pandas import utils
+from queries.cudf import utils
 
 Q_NUM = 18
 
@@ -48,11 +48,14 @@ def q() -> None:
 
         # Group by relevant columns and calculate sum of "l_quantity"
         grouped_df = (
-            merged_df.groupby(["c_name", "o_custkey", "o_orderkey", "o_orderdate", "o_totalprice"], as_index=False)
-            .agg(col6=pd.NamedAgg(column="l_quantity", aggfunc="sum"))
+            merged_df.groupby(
+                ["c_name", "c_custkey", "o_orderkey", "o_orderdate", "o_totalprice"],
+                as_index=False
+            )
+            .agg({"l_quantity": "sum"})
+            .rename(columns={"l_quantity": "col6"})
         )
 
-        # Select relevant columns and sort by "o_totalprice" and "o_orderdate"
         result_df = (
             grouped_df
             .rename(columns={"o_orderdate": "o_orderdat"})

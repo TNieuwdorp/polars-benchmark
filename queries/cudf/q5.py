@@ -6,6 +6,7 @@ import cudf.pandas
 
 cudf.pandas.install()
 import pandas as pd
+import numpy as np
 
 from queries.cudf import utils
 
@@ -43,8 +44,8 @@ def q() -> None:
         supplier_ds = supplier_ds()
 
         var1 = "ASIA"
-        var2 = date(1994, 1, 1)
-        var3 = date(1995, 1, 1)
+        var2 = np.datetime64("1994-01-01")
+        var3 = np.datetime64("1995-01-01")
 
         jn1 = region_ds.merge(nation_ds, left_on="r_regionkey", right_on="n_regionkey")
         jn2 = jn1.merge(customer_ds, left_on="n_nationkey", right_on="c_nationkey")

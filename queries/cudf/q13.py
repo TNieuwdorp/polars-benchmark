@@ -5,7 +5,7 @@ import cudf.pandas
 cudf.pandas.install()
 import pandas as pd
 
-from queries.pandas import utils
+from queries.cudf import utils
 
 Q_NUM = 13
 
@@ -37,14 +37,15 @@ def q() -> None:
         grouped_df = (
             merged_df
             .groupby("c_custkey", as_index=False)
-            .agg(c_count=pd.NamedAgg(column="o_orderkey", aggfunc="count"))
+            .agg({"o_orderkey": "count"})
+            .rename(columns={"o_orderkey": "c_count"})
         )
 
         # Group by "c_count" and count occurrences
         custdist_df = (
             grouped_df["c_count"].value_counts()
-            .reset_index(name='custdist')  # Correctly name the counts column
-            .rename(columns={"index": "c_count"})  # Rename 'index' to 'c_count'
+            .reset_index(name='custdist')
+            .rename(columns={"index": "c_count"})
             .sort_values(by=["custdist", "c_count"], ascending=[False, False])
         )
 

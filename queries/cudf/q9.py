@@ -3,9 +3,10 @@ from __future__ import annotations
 import cudf.pandas
 
 cudf.pandas.install()
+import cudf
 import pandas as pd
 
-from queries.pandas import utils
+from queries.cudf import utils
 
 Q_NUM = 9
 
@@ -40,35 +41,38 @@ def q() -> None:
         part_supp_ds = part_supp_ds()
         supplier_ds = supplier_ds()
 
-        # Join part and partsupp
+        # Filter part for p_name containing "green"
+        part_ds = part_ds[part_ds["p_name"].str.contains("green")][["p_partkey", "p_name"]]
+
+        # Select necessary columns
+        line_item_ds = line_item_ds[["l_orderkey", "l_partkey", "l_suppkey", "l_extendedprice", "l_discount", "l_quantity"]]
+        part_supp_ds = part_supp_ds[["ps_partkey", "ps_suppkey", "ps_supplycost"]]
+        supplier_ds = supplier_ds[["s_suppkey", "s_nationkey", "s_name"]]
+        nation_ds = nation_ds[["n_nationkey", "n_name"]]
+        orders_ds = orders_ds[["o_orderkey", "o_orderdate"]]
+
+        # Merge operations
         merged_df = part_ds.merge(part_supp_ds, left_on="p_partkey", right_on="ps_partkey")
-        # Join supplier
         merged_df = merged_df.merge(supplier_ds, left_on="ps_suppkey", right_on="s_suppkey")
-        # Join lineitem
         merged_df = merged_df.merge(line_item_ds, left_on=["p_partkey", "ps_suppkey"], right_on=["l_partkey", "l_suppkey"])
-        # Join orders
         merged_df = merged_df.merge(orders_ds, left_on="l_orderkey", right_on="o_orderkey")
-        # Join nation
         merged_df = merged_df.merge(nation_ds, left_on="s_nationkey", right_on="n_nationkey")
 
-        # Filter p_name containing "green"
-        filtered_df = merged_df[merged_df["p_name"].str.contains("green")]
-
-        # Select the relevant columns and calculate "amount"
-        filtered_df = filtered_df.assign(
-            nation=filtered_df["n_name"],
-            o_year=filtered_df["o_orderdate"].dt.year,
-            amount=(
-                filtered_df["l_extendedprice"] * (1 - filtered_df["l_discount"]) -
-                filtered_df["ps_supplycost"] * filtered_df["l_quantity"]
-            )
+        # Calculate "amount"
+        merged_df["amount"] = (
+            merged_df["l_extendedprice"] * (1 - merged_df["l_discount"]) -
+            merged_df["ps_supplycost"] * merged_df["l_quantity"]
         )
+        merged_df["o_year"] = merged_df["o_orderdate"].dt.year
 
         # Group by "nation" and "o_year" and aggregate "sum_profit"
         result_df = (
-            filtered_df
-            .groupby(["nation", "o_year"], as_index=False)
-            .agg(sum_profit=pd.NamedAgg(column="amount", aggfunc=lambda x: round(x.sum(), 2)))
+            merged_df
+            .groupby(["n_name", "o_year"], as_index=False)
+            .agg({'amount': 'sum'})
+            .rename(columns={'amount': 'sum_profit'})
+            .assign(sum_profit=lambda df: df["sum_profit"].round(2))
+            .rename(columns={"n_name": "nation"})
             .sort_values(by=["nation", "o_year"], ascending=[True, False])
         )
 

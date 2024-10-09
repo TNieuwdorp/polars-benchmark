@@ -4,8 +4,9 @@ import cudf.pandas
 
 cudf.pandas.install()
 import pandas as pd
+import numpy as np
 
-from queries.pandas import utils
+from queries.cudf import utils
 
 Q_NUM = 20
 
@@ -36,8 +37,8 @@ def q() -> None:
         part_supp_ds = part_supp_ds()
         supplier_ds = supplier_ds()
 
-        var1 = pd.Timestamp("1994-01-01")
-        var2 = pd.Timestamp("1995-01-01")
+        var1 = np.datetime64("1994-01-01")
+        var2 = np.datetime64("1995-01-01")
         var3 = "CANADA"
         var4 = "forest"
 

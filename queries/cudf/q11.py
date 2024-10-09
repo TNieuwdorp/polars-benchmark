@@ -5,7 +5,7 @@ import cudf.pandas
 cudf.pandas.install()
 import pandas as pd
 
-from queries.pandas import utils
+from queries.cudf import utils
 
 Q_NUM = 11
 
@@ -49,11 +49,12 @@ def q() -> None:
         grouped_df = (
             filtered_df
             .groupby("ps_partkey", as_index=False)
-            .agg(value=pd.NamedAgg(
-                column='cost_times_qty',
-                aggfunc=lambda x: round(x.sum(), 2)
-            ))
+            .agg({"cost_times_qty": "sum"})
+            .rename(columns={"cost_times_qty": "value"})
         )
+
+        # Round 'value' column to 2 decimal places
+        grouped_df['value'] = grouped_df['value'].round(2)
 
         # Filter where "value" > "tmp"
         result_df = grouped_df[grouped_df["value"] > tmp]

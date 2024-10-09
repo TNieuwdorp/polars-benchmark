@@ -3,9 +3,11 @@ from __future__ import annotations
 import cudf.pandas
 
 cudf.pandas.install()
+import cudf
 import pandas as pd
+import numpy as np
 
-from queries.pandas import utils
+from queries.cudf import utils
 
 Q_NUM = 14
 
@@ -24,8 +26,8 @@ def q() -> None:
         line_item_ds = line_item_ds()
         part_ds = part_ds()
 
-        var1 = pd.Timestamp("1995-09-01")
-        var2 = pd.Timestamp("1995-10-01")
+        var1 = np.datetime64("1995-09-01")
+        var2 = np.datetime64("1995-10-01")
 
         # Join lineitem and part
         merged_df = line_item_ds.merge(part_ds, left_on="l_partkey", right_on="p_partkey")
@@ -42,7 +44,7 @@ def q() -> None:
             ).sum() / total_revenue
         )
 
-        result_df = pd.DataFrame({"promo_revenue": [round(promo_revenue, 2)]})
+        result_df = cudf.DataFrame({"promo_revenue": [round(promo_revenue, 2)]})
 
         return result_df
 
