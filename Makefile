@@ -33,7 +33,7 @@ SCALE_FACTOR ?= 1
     clean-tables \
     help
 
-run-10-times:
+run-10-times: install-deps tables
 	@if [ -z "$(HARDWARE)" ]; then \
 		echo "Error: HARDWARE environment variable is not set."; \
 		exit 1; \
@@ -55,7 +55,7 @@ run-10-times:
 
 install-deps: .venv/.installed-deps .venv ## Install Python project dependencies if not already installed
 
-.venv/.installed-deps: ## Install only if dependencies aren't already installed
+.venv/.installed-deps: .venv ## Install only if dependencies aren't already installed
 	@unset CONDA_PREFIX \
 	&& $(VENV_BIN)/python -m pip install --upgrade uv \
 	&& $(VENV_BIN)/uv pip install --compile -r requirements.txt --extra-index-url=https://pypi.nvidia.com
