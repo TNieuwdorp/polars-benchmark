@@ -4,7 +4,7 @@ PYTHONPATH =
 SHELL       = /bin/bash
 VENV        = .venv
 VENV_BIN    = $(VENV)/bin
-SCALE_FACTOR ?= 1
+SCALE_FACTOR ?= 1.0
 
 .PHONY: \
     run-10-times \
