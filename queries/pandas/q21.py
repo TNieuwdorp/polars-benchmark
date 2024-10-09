@@ -1,11 +1,8 @@
 from __future__ import annotations
 
-from typing import TYPE_CHECKING
+import pandas as pd
 
 from queries.pandas import utils
-
-if TYPE_CHECKING:
-    import pandas as pd
 
 Q_NUM = 21
 
@@ -34,38 +31,44 @@ def q() -> None:
 
         var1 = "SAUDI ARABIA"
 
-        # Group lineitem by l_orderkey and calculate count of l_suppkey per order
-        lineitem_grouped = (
-            line_item_ds.groupby("l_orderkey", as_index=False)["l_suppkey"].count()
-            .rename(columns={"l_suppkey": "n_supp_by_order"})
-        )
+        # Suppliers from SAUDI ARABIA
+        supplier_nation = supplier_ds.merge(nation_ds, left_on='s_nationkey', right_on='n_nationkey')
+        supplier_saudi = supplier_nation[supplier_nation['n_name'] == var1][['s_suppkey', 's_name']]
 
-        # Filter for orders with more than 1 supplier and join with lineitem on condition
-        lineitem_filtered = line_item_ds[line_item_ds["l_receiptdate"] > line_item_ds["l_commitdate"]]
-        q1 = lineitem_grouped[lineitem_grouped["n_supp_by_order"] > 1].merge(lineitem_filtered, on="l_orderkey")
+        # Orders with status 'F'
+        orders_f = orders_ds[orders_ds['o_orderstatus'] == 'F'][['o_orderkey']]
 
-        # Join q1 with supplier, nation, and orders
-        q_final = (
-            q1.merge(supplier_ds, left_on="l_suppkey", right_on="s_suppkey")
-            .merge(nation_ds, left_on="s_nationkey", right_on="n_nationkey")
-            .merge(orders_ds, left_on="l_orderkey", right_on="o_orderkey")
-        )
+        # Lineitems with late shipments
+        lineitem_late = line_item_ds[line_item_ds['l_receiptdate'] > line_item_ds['l_commitdate']][['l_orderkey', 'l_suppkey']]
 
-        # Apply additional filters and group by s_name
-        q_final = q_final[
-            (q_final["n_supp_by_order"] == 1) &
-            (q_final["n_name"] == var1) &
-            (q_final["o_orderstatus"] == "F")
-        ]
+        # All suppliers per order
+        order_suppliers = line_item_ds[['l_orderkey', 'l_suppkey']].drop_duplicates()
 
+        # Suppliers per order
+        supplier_count = order_suppliers.groupby('l_orderkey').size().reset_index(name='supplier_count')
 
-        # Group by supplier name and count occurrences
-        result_df = (
-            q_final.groupby("s_name").size()
-            .reset_index(name='numwait')
-            .sort_values(by=["numwait", "s_name"], ascending=[False, True])
-            .head(100)
-        )
+        # Late suppliers per order
+        late_supplier_count = lineitem_late.groupby('l_orderkey').size().reset_index(name='late_supplier_count')
+
+        # Combine counts
+        counts = supplier_count.merge(late_supplier_count, on='l_orderkey', how='left').fillna(0)
+        counts['late_supplier_count'] = counts['late_supplier_count'].astype(int)
+
+        # Orders with more than one supplier and exactly one late supplier
+        target_orders = counts[(counts['supplier_count'] > 1) & (counts['late_supplier_count'] == 1)]
+
+        # Get the late supplier for these orders
+        late_suppliers = lineitem_late[lineitem_late['l_orderkey'].isin(target_orders['l_orderkey'])]
+
+        # Suppliers from SAUDI ARABIA who are late suppliers
+        late_suppliers_saudi = late_suppliers.merge(supplier_saudi, left_on='l_suppkey', right_on='s_suppkey')
+
+        # Join with orders to filter by status 'F'
+        late_suppliers_saudi_f = late_suppliers_saudi.merge(orders_f, left_on='l_orderkey', right_on='o_orderkey')
+
+        # Group and count
+        result_df = late_suppliers_saudi_f.groupby('s_name').size().reset_index(name='numwait')
+        result_df = result_df.sort_values(by=['numwait', 's_name'], ascending=[False, True]).head(100)
 
         return result_df
 
