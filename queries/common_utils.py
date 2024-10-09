@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import os
 import re
 import sys
 from datetime import datetime
@@ -84,7 +85,9 @@ def execute_all(library_name: str) -> None:
 
     with CodeTimer(name=f"Overall execution of ALL {library_name} queries", unit="s"):
         for i in query_numbers:
-            run([sys.executable, "-m", f"queries.{library_name}.q{i}"])
+            run([sys.executable, "-m", f"queries.{library_name}.q{i}"],
+                timeout=min(60, os.environ.get("SCALE_FACTOR", 1) / 5 * 60)
+                )
 
 
 def _get_query_numbers(library_name: str) -> list[int]:
