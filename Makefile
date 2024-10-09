@@ -8,12 +8,9 @@ SCALE_FACTOR ?= 1
 
 .PHONY: \
     run-10-times \
-    install-deps \
     bump-deps \
-    install-gpu-env \
     fmt \
     pre-commit \
-    tables \
     run-polars \
     run-fireducks \
     run-cudf \
@@ -56,17 +53,23 @@ run-10-times:
 	export PATH=$$HOME/.cargo/bin:$$PATH  
 	uv venv --python 3.11 --seed
 
-install-deps: .venv  ## Install Python project dependencies
+install-deps: .venv/.installed-deps .venv ## Install Python project dependencies if not already installed
+
+.venv/.installed-deps: ## Install only if dependencies aren't already installed
 	@unset CONDA_PREFIX \
 	&& $(VENV_BIN)/python -m pip install --upgrade uv \
-	&& $(VENV_BIN)/uv pip install --compile -r requirements.txt \
-	&& $(VENV_BIN)/uv pip install --compile -r requirements-dev.txt \
-	&& $(VENV_BIN)/uv pip install cudf-cu12 cudf-polars-cu12 --extra-index-url=https://pypi.nvidia.com
+	&& $(VENV_BIN)/uv pip install --compile -r requirements.txt --extra-index-url=https://pypi.nvidia.com
+	touch .venv/.installed-deps
+
+bump-deps-with-gpu: .venv  ## Bump Python project dependencies
+	$(VENV_BIN)/python -m pip install --upgrade uv
+	$(VENV_BIN)/uv pip compile --extra-index-url=https://pypi.nvidia.com requirements.in requirements-gpu.in > requirements.txt
+	rm .venv/.installed-deps
 
 bump-deps: .venv  ## Bump Python project dependencies
 	$(VENV_BIN)/python -m pip install --upgrade uv
-	$(VENV_BIN)/uv pip compile requirements.in > requirements.txt
-	$(VENV_BIN)/uv pip compile requirements-dev.in > requirements-dev.txt
+	$(VENV_BIN)/uv pip compile requirements.in -o requirements.txt
+	rm .venv/.installed-deps
 
 fmt:  ## Run autoformatting and linting
 	$(VENV_BIN)/ruff check
@@ -77,7 +80,7 @@ pre-commit: fmt  ## Run all code quality checks
 
 tables: data/tables/scale-$(SCALE_FACTOR)/.done   ## Alias for the dataset generation
 
-data/tables/scale-$(SCALE_FACTOR)/.done: install-deps  ## Generate data tables if not already generated
+data/tables/scale-$(SCALE_FACTOR)/.done: | install-deps  ## Generate data tables if not already generated
 	$(MAKE) -C tpch-dbgen dbgen
 	cd tpch-dbgen && ./dbgen -vf -s $(SCALE_FACTOR) && cd ..
 	mkdir -p "data/tables/scale-$(SCALE_FACTOR)"
@@ -92,13 +95,13 @@ run-polars: install-deps tables  ## Run Polars benchmarks
 run-fireducks: install-deps tables  ## Run Fireducks benchmarks
 	$(VENV_BIN)/python -m queries.fireducks
 
-run-cudf: install-gpu-env tables  ## Run cuDF benchmarks
+run-cudf: install-deps tables  ## Run cuDF benchmarks
 	$(VENV_BIN)/python -m queries.cudf
 
 run-polars-eager: install-deps tables  ## Run Polars benchmarks in eager mode
 	POLARS_EAGER=1 $(VENV_BIN)/python -m queries.polars
 
-run-polars-gpu: install-gpu-env tables  ## Run Polars GPU benchmarks
+run-polars-gpu: install-deps tables  ## Run Polars GPU benchmarks
 	POLARS_GPU=1 $(VENV_BIN)/python -m queries.polars
 
 run-polars-streaming: install-deps tables  ## Run Polars streaming benchmarks
@@ -135,7 +138,7 @@ run-all: run-all-polars run-duckdb run-pandas run-pyspark run-dask run-modin  ##
 
 run-all-polars: run-polars run-polars-eager run-polars-gpu run-polars-streaming  ## Run all Polars benchmarks
 
-run-all-gpu: run-polars run-polars-gpu run-pandas #run-cudf  ## Run all GPU-accelerated library benchmarks
+run-all-gpu: run-polars run-polars-gpu run-pandas run-cudf  ## Run all GPU-accelerated library benchmarks
 
 plot: install-deps  ## Plot results
 	$(VENV_BIN)/python -m scripts.plot_bars
