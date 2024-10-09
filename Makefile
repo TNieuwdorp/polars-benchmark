@@ -54,28 +54,19 @@ run-10-times:
 .venv:  ## Set up Python virtual environment
 	curl -LsSf https://astral.sh/uv/install.sh | sh
 	export PATH=$$HOME/.cargo/bin:$$PATH  
-	uv venv --python 3.12 --seed
+	uv venv --python 3.11 --seed
 
 install-deps: .venv  ## Install Python project dependencies
 	@unset CONDA_PREFIX \
 	&& $(VENV_BIN)/python -m pip install --upgrade uv \
 	&& $(VENV_BIN)/uv pip install --compile -r requirements.txt \
-	&& $(VENV_BIN)/uv pip install --compile -r requirements-dev.txt
+	&& $(VENV_BIN)/uv pip install --compile -r requirements-dev.txt \
+	&& $(VENV_BIN)/uv pip install cudf-cu12 cudf-polars-cu12 --extra-index-url=https://pypi.nvidia.com
 
 bump-deps: .venv  ## Bump Python project dependencies
 	$(VENV_BIN)/python -m pip install --upgrade uv
 	$(VENV_BIN)/uv pip compile requirements.in > requirements.txt
 	$(VENV_BIN)/uv pip compile requirements-dev.in > requirements-dev.txt
-
-install-gpu-env:
-	@if ! conda info --envs | grep -q "rapids-24.08"; then \
-		echo "Conda environment 'rapids-24.08' not found. Installing..."; \
-		conda create -n rapids-24.08 -c rapidsai -c conda-forge -c nvidia \
-			cudf=24.08 python=3.11 'cuda-version>=12.0,<=12.5' --yes; \
-		conda run -n rapids-24.08 pip install -r requirements-polars-gpu.txt; \
-	else \
-		echo "Conda environment 'rapids-24.08' already exists. Skipping installation."; \
-	fi
 
 fmt:  ## Run autoformatting and linting
 	$(VENV_BIN)/ruff check
@@ -102,13 +93,13 @@ run-fireducks: install-deps tables  ## Run Fireducks benchmarks
 	$(VENV_BIN)/python -m queries.fireducks
 
 run-cudf: install-gpu-env tables  ## Run cuDF benchmarks
-	conda run -n rapids-24.08 python -m queries.cudf
+	$(VENV_BIN)/python -m queries.cudf
 
 run-polars-eager: install-deps tables  ## Run Polars benchmarks in eager mode
 	POLARS_EAGER=1 $(VENV_BIN)/python -m queries.polars
 
 run-polars-gpu: install-gpu-env tables  ## Run Polars GPU benchmarks
-	POLARS_GPU=1 conda run -n rapids-24.08 python -m queries.polars
+	POLARS_GPU=1 $(VENV_BIN)/python -m queries.polars
 
 run-polars-streaming: install-deps tables  ## Run Polars streaming benchmarks
 	POLARS_STREAMING=1 $(VENV_BIN)/python -m queries.polars
