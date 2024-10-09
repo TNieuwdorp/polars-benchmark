@@ -1,13 +1,13 @@
 from __future__ import annotations
 
 from datetime import date
-from typing import TYPE_CHECKING
+
 import cudf.pandas
 
 cudf.pandas.install()
-from queries.cudf import utils
-
 import pandas as pd
+
+from queries.cudf import utils
 
 Q_NUM = 5
 

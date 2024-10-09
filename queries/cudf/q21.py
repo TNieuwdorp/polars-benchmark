@@ -1,12 +1,11 @@
 from __future__ import annotations
 
-from typing import TYPE_CHECKING
 import cudf.pandas
 
 cudf.pandas.install()
-from queries.pandas import utils
-
 import pandas as pd
+
+from queries.pandas import utils
 
 Q_NUM = 21
 
