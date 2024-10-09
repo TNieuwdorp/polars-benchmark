@@ -2,6 +2,9 @@ from __future__ import annotations
 
 from datetime import date
 
+import cudf.pandas
+
+cudf.pandas.install()
 import pandas as pd
 
 from queries.cudf import utils

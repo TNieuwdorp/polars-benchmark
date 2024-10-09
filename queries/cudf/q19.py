@@ -1,5 +1,7 @@
 from __future__ import annotations
+import cudf.pandas
 
+cudf.pandas.install()
 import pandas as pd
 
 from queries.pandas import utils
