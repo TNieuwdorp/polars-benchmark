@@ -49,11 +49,15 @@ def q() -> None:
         # Group by relevant columns and calculate revenue
         grouped_df = (
             filtered_df
+            .assign(revenue=lambda x: x["l_extendedprice"] * (1 - x["l_discount"]))
             .groupby([
                 "c_custkey", "c_name", "c_acctbal", "c_phone", "n_name", "c_address", "c_comment"
             ], as_index=False)
-            .apply(lambda x: round((x["l_extendedprice"] * (1 - x["l_discount"])).sum(), 2)).reset_index().rename(columns={0: "revenue"})
+            .agg({"revenue": "sum"})
         )
+
+        # Round the 'revenue' column to 2 decimal places
+        grouped_df["revenue"] = grouped_df["revenue"].round(2)
 
         # Select the relevant columns and sort by revenue
         result_df = (
@@ -63,6 +67,7 @@ def q() -> None:
         )
 
         return result_df
+
 
     utils.run_query(Q_NUM, query)
 

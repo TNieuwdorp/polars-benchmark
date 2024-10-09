@@ -58,10 +58,11 @@ def q() -> None:
             (q_final["o_orderstatus"] == "F")
         ]
 
+
         # Group by supplier name and count occurrences
         result_df = (
-            q_final.groupby("s_name", as_index=False).size()
-            .rename(columns={0: "numwait"})
+            q_final.groupby("s_name").size()
+            .reset_index(name='numwait')
             .sort_values(by=["numwait", "s_name"], ascending=[False, True])
             .head(100)
         )

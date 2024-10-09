@@ -42,8 +42,9 @@ def q() -> None:
         filtered_df = merged_with_avg[merged_with_avg["l_quantity"] < merged_with_avg["avg_quantity"]]
 
         # Calculate average yearly revenue
-        avg_yearly = (filtered_df["l_extendedprice"].sum() / 7.0).round(2)
+        avg_yearly = round(filtered_df["l_extendedprice"].sum() / 7.0, 2)
         result_df = pd.DataFrame({"avg_yearly": [avg_yearly]})
+
 
         return result_df
 
