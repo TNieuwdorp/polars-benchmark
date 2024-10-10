@@ -130,7 +130,9 @@ run-modin: install-deps tables  ## Run Modin benchmarks
 
 ## Run-all Targets
 
-run-all: run-all-polars run-duckdb run-pandas run-pyspark run-dask run-modin  ## Run all benchmarks
+run-all: run-all-polars run-cudf run-duckdb run-pandas run-pyspark run-dask run-modin   ## Run all benchmarks
+
+run-performant: run-all-polars run-cudf run-duckdb run-dask  ## Run all benchmarks for high scale datasets
 
 run-all-polars: run-polars run-polars-eager run-polars-gpu run-polars-streaming  ## Run all Polars benchmarks
 
@@ -165,16 +167,34 @@ help:  ## Display this help screen
 
 ## Other
 
-run-10-times:  ## Run benchmarks 10 times over multiple SCALE_FACTOR values
-	@if [ -z "$(HARDWARE)" ]; then \
-		echo "Error: HARDWARE environment variable is not set."; \
-		exit 1; \
-	fi; \
+run-10-times-light:  ## Run benchmarks 10 times over multiple SCALE_FACTOR values
 	for i in {1..10}; do \
 		for scale in 0.1 1.0 5.0 10.0 15.0 20.0 25.0 30.0; do \
 			echo "Running benchmarks for SCALE_FACTOR=$$scale (iteration $$i)"; \
 			SCALE_FACTOR=$$scale $(MAKE) run-all; \
 			mv output/run/timings.csv output/run/timings-$(HARDWARE)-scale-$$scale-iteration-$$i.csv; \
 		done; \
+	done;
+
+run-10-times-heavy:
+	@if [ -z "$(HARDWARE)" ]; then \
+		echo "Error: HARDWARE environment variable is not set."; \
+		exit 1; \
+	fi; \
+	for i in {1..10}; do \
+		for scale in 15.0 20.0 25.0 30.0 35.0 40.0 45.0 50.0; do \
+			echo "Running benchmarks for SCALE_FACTOR=$$scale (iteration $$i)"; \
+			SCALE_FACTOR=$$scale $(MAKE) run-performant; \
+			mv output/run/timings.csv output/run/timings-$(HARDWARE)-scale-$$scale-iteration-$$i.csv; \
+		done; \
 	done; \
+	
+
+benchmark:
+	@if [ -z "$(HARDWARE)" ]; then \
+		echo "Error: HARDWARE environment variable is not set."; \
+		exit 1; \
+	fi; \
+	$(MAKE) run-10-times-light
+	$(MAKE) run-10-times-heavy
 	unset HARDWARE
