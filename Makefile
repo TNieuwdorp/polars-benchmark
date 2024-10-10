@@ -169,7 +169,7 @@ help:  ## Display this help screen
 
 run-10-times-light:  ## Run benchmarks 10 times over multiple SCALE_FACTOR values
 	for i in {1..10}; do \
-		for scale in 0.1 1.0 5.0 10.0 15.0 20.0 25.0 30.0; do \
+		for scale in 0.1 1.0 5.0 10.0; do \
 			echo "Running benchmarks for SCALE_FACTOR=$$scale (iteration $$i)"; \
 			SCALE_FACTOR=$$scale $(MAKE) run-all; \
 			mv output/run/timings.csv output/run/timings-$(HARDWARE)-scale-$$scale-iteration-$$i.csv; \
@@ -182,7 +182,7 @@ run-10-times-heavy:
 		exit 1; \
 	fi; \
 	for i in {1..10}; do \
-		for scale in 15.0 20.0 25.0 30.0 35.0 40.0 45.0 50.0; do \
+		for scale in 20.0 35.0 50.0; do \
 			echo "Running benchmarks for SCALE_FACTOR=$$scale (iteration $$i)"; \
 			SCALE_FACTOR=$$scale $(MAKE) run-performant; \
 			mv output/run/timings.csv output/run/timings-$(HARDWARE)-scale-$$scale-iteration-$$i.csv; \
