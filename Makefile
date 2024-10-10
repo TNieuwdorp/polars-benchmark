@@ -53,9 +53,9 @@ run-10-times:
 	export PATH=$$HOME/.cargo/bin:$$PATH  
 	uv venv --python 3.11 --seed
 
-install-deps: .venv/.installed-deps .venv ## Install Python project dependencies if not already installed
+install-deps: .venv .venv/.installed-deps  ## Install Python project dependencies if not already installed
 
-.venv/.installed-deps: ## Install only if dependencies aren't already installed
+.venv/.installed-deps: | .venv ## Install only if dependencies aren't already installed
 	@unset CONDA_PREFIX \
 	&& $(VENV_BIN)/python -m pip install --upgrade uv \
 	&& $(VENV_BIN)/uv pip install --compile -r requirements.txt --extra-index-url=https://pypi.nvidia.com \
