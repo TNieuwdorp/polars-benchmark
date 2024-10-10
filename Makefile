@@ -130,7 +130,7 @@ run-modin: install-deps tables  ## Run Modin benchmarks
 
 ## Run-all Targets
 
-run-all: run-all-polars run-cudf run-duckdb run-pandas run-pyspark run-dask run-modin   ## Run all benchmarks
+run-all: run-all-polars run-cudf run-duckdb run-pandas run-pyspark run-dask #run-modin   ## Run all benchmarks
 
 run-performant: run-all-polars run-cudf run-duckdb run-dask  ## Run all benchmarks for high scale datasets
 
