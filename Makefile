@@ -132,7 +132,7 @@ run-modin: install-deps tables  ## Run Modin benchmarks
 
 run-all: run-all-polars run-cudf run-duckdb run-pandas run-pyspark run-dask #run-modin   ## Run all benchmarks
 
-run-performant: run-all-polars run-cudf run-duckdb run-dask  ## Run all benchmarks for high scale datasets
+run-performant: run-all-polars run-cudf run-duckdb  ## Run all benchmarks for high scale datasets
 
 run-all-polars: run-polars run-polars-eager run-polars-gpu run-polars-streaming  ## Run all Polars benchmarks
 
@@ -168,7 +168,7 @@ help:  ## Display this help screen
 ## Other
 
 run-10-times-light:  ## Run benchmarks 10 times over multiple SCALE_FACTOR values
-	for i in {1..10}; do \
+	for i in {1..5}; do \
 		for scale in 0.1 1.0 5.0 10.0; do \
 			echo "Running benchmarks for SCALE_FACTOR=$$scale (iteration $$i)"; \
 			SCALE_FACTOR=$$scale $(MAKE) run-all; \
@@ -181,7 +181,7 @@ run-10-times-heavy:
 		echo "Error: HARDWARE environment variable is not set."; \
 		exit 1; \
 	fi; \
-	for i in {1..10}; do \
+	for i in {1..5}; do \
 		for scale in 20.0 35.0 50.0; do \
 			echo "Running benchmarks for SCALE_FACTOR=$$scale (iteration $$i)"; \
 			SCALE_FACTOR=$$scale $(MAKE) run-performant; \
