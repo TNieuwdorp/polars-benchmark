@@ -69,14 +69,14 @@ install-deps: .venv/.installed-deps
 # Generate data tables if not already generated
 tables: data/tables/scale-$(SCALE_FACTOR)/.done
 
-data/tables/scale-%/.done: install-deps
+data/tables/scale-$(SCALE_FACTOR)/.done: | install-deps
 	$(MAKE) -C tpch-dbgen dbgen
-	cd tpch-dbgen && ./dbgen -vf -s $*
-	mkdir -p "data/tables/scale-$*"
-	mv tpch-dbgen/*.tbl "data/tables/scale-$*/"
+	cd tpch-dbgen && ./dbgen -vf -s $(SCALE_FACTOR)
+	mkdir -p "data/tables/scale-$(SCALE_FACTOR)"
+	mv tpch-dbgen/*.tbl "data/tables/scale-$(SCALE_FACTOR)/"
 	$(VENV_BIN)/python -m scripts.prepare_data
-	rm -f "data/tables/scale-$*"/*.tbl
-	touch $@
+	rm -f "data/tables/scale-$(SCALE_FACTOR)"/*.tbl
+	touch "data/tables/scale-$(SCALE_FACTOR)/.done"
 
 # Run all benchmarks
 run-all: run-all-polars run-cudf run-duckdb run-pandas run-pyspark run-dask run-modin
