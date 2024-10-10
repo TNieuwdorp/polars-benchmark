@@ -79,7 +79,7 @@ data/tables/scale-%/.done: install-deps
 	touch $@
 
 # Run all benchmarks
-run-all: run-all-polars run-duckdb run-pandas run-pyspark run-dask run-modin
+run-all: run-all-polars run-cudf run-duckdb run-pandas run-pyspark run-dask run-modin
 
 # Run all Polars benchmarks
 run-all-polars: run-polars run-polars-eager run-polars-gpu run-polars-streaming
