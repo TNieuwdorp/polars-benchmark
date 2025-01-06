@@ -39,25 +39,12 @@ SCALE_FACTOR ?= 1.0
 
 .venv:  ## Set up Python virtual environment
 	curl -LsSf https://astral.sh/uv/install.sh | sh
-	PATH=$$HOME/.cargo/bin:$$PATH uv venv --python 3.11 --seed
+	PATH=$$HOME/.cargo/bin:$$PATH uv venv --python 3.12 --seed
 
 install-deps: .venv .venv/.installed-deps  ## Install Python project dependencies if not already installed
 
 .venv/.installed-deps: | .venv  ## Install only if dependencies aren't already installed
-	@unset CONDA_PREFIX \
-	&& $(VENV_BIN)/python -m pip install --upgrade uv \
-	&& $(VENV_BIN)/uv pip install --compile -r requirements.txt --extra-index-url=https://pypi.nvidia.com \
-	&& touch $@
-
-bump-deps: .venv  ## Bump Python project dependencies
-	$(VENV_BIN)/python -m pip install --upgrade uv
-	$(VENV_BIN)/uv pip compile requirements.in -o requirements.txt
-	rm -f .venv/.installed-deps
-
-bump-deps-with-gpu: .venv  ## Bump Python project dependencies with GPU support
-	$(VENV_BIN)/python -m pip install --upgrade uv
-	$(VENV_BIN)/uv pip compile --extra-index-url=https://pypi.nvidia.com requirements.in requirements-gpu.in -o requirements.txt
-	rm -f .venv/.installed-deps
+	@unset CONDA_PREFIX; uv sync; touch $@
 
 ## Code Quality and Formatting
 
@@ -77,29 +64,29 @@ data/tables/scale-$(SCALE_FACTOR)/.done: | install-deps  ## Generate data tables
 	(cd tpch-dbgen && ./dbgen -vf -s $(SCALE_FACTOR))
 	mkdir -p "data/tables/scale-$(SCALE_FACTOR)"
 	mv tpch-dbgen/*.tbl data/tables/scale-$(SCALE_FACTOR)/
-	$(VENV_BIN)/python -m scripts.prepare_data
+	uv run --with polars -m scripts.prepare_data
 	rm -rf data/tables/scale-$(SCALE_FACTOR)/*.tbl
 	touch $@
 
 ## Benchmark Runs
 
 run-polars: install-deps tables  ## Run Polars benchmarks
-	$(VENV_BIN)/python -m queries.polars
+	uv run --with polars -m queries.polars
 
 run-fireducks: install-deps tables  ## Run Fireducks benchmarks
-	$(VENV_BIN)/python -m queries.fireducks
+	uv run --with fireducks -m queries.fireducks
 
 run-cudf: install-deps tables  ## Run cuDF benchmarks
-	$(VENV_BIN)/python -m queries.cudf
+	uv run --with cudf-cu12 -m queries.cudf --extra-index-url=https://pypi.nvidia.com
 
 run-polars-eager: install-deps tables  ## Run Polars benchmarks in eager mode
-	POLARS_EAGER=1 $(VENV_BIN)/python -m queries.polars
+	POLARS_EAGER=1 uv run --with polars -m queries.polars
 
 run-polars-gpu: install-deps tables  ## Run Polars GPU benchmarks
-	POLARS_GPU=1 $(VENV_BIN)/python -m queries.polars
+	POLARS_GPU=1 CUDA_MODULE_LOADING=EAGER uv run --with polars[gpu] -m queries.polars 
 
 run-polars-streaming: install-deps tables  ## Run Polars streaming benchmarks
-	POLARS_STREAMING=1 $(VENV_BIN)/python -m queries.polars
+	POLARS_STREAMING=1 uv run --with polars -m queries.polars
 
 run-polars-no-env:  ## Run Polars benchmarks without virtual environment
 	$(MAKE) -C tpch-dbgen dbgen
@@ -114,34 +101,34 @@ run-polars-gpu-no-env: run-polars-no-env  ## Run Polars CPU and GPU benchmarks w
 	RUN_POLARS_GPU=true CUDA_MODULE_LOADING=EAGER python -m queries.polars
 
 run-duckdb: install-deps tables  ## Run DuckDB benchmarks
-	$(VENV_BIN)/python -m queries.duckdb
+	uv run --with duckdb --with polars --with pyarrow -m queries.duckdb
 
 run-pandas: install-deps tables  ## Run pandas benchmarks
-	$(VENV_BIN)/python -m queries.pandas
+	uv run --with pandas --with pyarrow --with fastparquet -m queries.pandas
 
 run-pyspark: install-deps tables  ## Run PySpark benchmarks
-	$(VENV_BIN)/python -m queries.pyspark
+	uv run --with pyspark[pandas_on_spark] -m queries.pyspark
 
 run-dask: install-deps tables  ## Run Dask benchmarks
-	$(VENV_BIN)/python -m queries.dask
+	uv run --with dask[dataframe] -m queries.dask
 
 run-modin: install-deps tables  ## Run Modin benchmarks
-	$(VENV_BIN)/python -m queries.modin
+	uv run --with modin[ray] -m queries.modin
 
 ## Run-all Targets
 
 run-all: run-all-polars run-cudf run-duckdb run-pandas run-pyspark run-dask #run-modin   ## Run all benchmarks
 
-run-performant: run-all-polars run-cudf run-duckdb  ## Run all benchmarks for high scale datasets
+run-performant: run-polars run-polars-gpu run-cudf run-duckdb  ## Run all benchmarks for high scale datasets
 
 run-all-polars: run-polars run-polars-eager run-polars-gpu run-polars-streaming  ## Run all Polars benchmarks
 
-run-all-gpu: run-polars run-polars-gpu run-pandas run-cudf  ## Run all GPU-accelerated library benchmarks
+run-all-gpu: run-polars-gpu run-cudf  ## Run all GPU-accelerated library benchmarks
 
 ## Plotting
 
 plot: install-deps  ## Plot results
-	$(VENV_BIN)/python -m scripts.plot_bars
+	uv run --with plotly -m scripts.plot_bars
 
 ## Cleaning
 
@@ -169,9 +156,9 @@ help:  ## Display this help screen
 
 run-10-times-light:  ## Run benchmarks 10 times over multiple SCALE_FACTOR values
 	for i in {1..5}; do \
-		for scale in 0.1 1.0 5.0 10.0; do \
+		for scale in 0.1 1.0 2.5 5.0 10.0; do \
 			echo "Running benchmarks for SCALE_FACTOR=$$scale (iteration $$i)"; \
-			SCALE_FACTOR=$$scale $(MAKE) run-all; \
+			SCALE_FACTOR=$$scale $(MAKE) run-pandas; \
 			mv output/run/timings.csv output/run/timings-$(HARDWARE)-scale-$$scale-iteration-$$i.csv; \
 		done; \
 	done;
@@ -182,7 +169,7 @@ run-10-times-heavy:
 		exit 1; \
 	fi; \
 	for i in {1..5}; do \
-		for scale in 20.0 35.0 50.0; do \
+		for scale in 25.0 50.0 100.0; do \
 			echo "Running benchmarks for SCALE_FACTOR=$$scale (iteration $$i)"; \
 			SCALE_FACTOR=$$scale $(MAKE) run-performant; \
 			mv output/run/timings.csv output/run/timings-$(HARDWARE)-scale-$$scale-iteration-$$i.csv; \
@@ -196,5 +183,4 @@ benchmark:
 		exit 1; \
 	fi; \
 	$(MAKE) run-10-times-light
-	$(MAKE) run-10-times-heavy
 	unset HARDWARE

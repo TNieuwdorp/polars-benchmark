@@ -86,3 +86,20 @@ module = [
   "plotnine.*",
 ]
 follow_imports = "skip"
+
+[project]
+name = "polars-benchmark"
+version = "1.0.0"
+requires-python = "==3.12.8"
+dependencies = [
+    "linetimer",
+    "pydantic",
+    "pydantic-settings",
+]
+
+[project.optional-dependencies]
+dev = [
+    "ruff",
+    "mypy",
+    "pandas-stubs",
+]

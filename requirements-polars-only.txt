@@ -1,7 +1,0 @@
-polars
-
-linetimer
-plotnine
-plotly
-pydantic
-pydantic-settings

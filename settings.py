@@ -47,8 +47,8 @@ class Run(BaseSettings):
 
     modin_memory: int = 8_000_000_000  # Tune as needed for optimal performance
 
-    spark_driver_memory: str = "2g"  # Tune as needed for optimal performance
-    spark_executor_memory: str = "1g"  # Tune as needed for optimal performance
+    spark_driver_memory: str = "10g"  # Tune as needed for optimal performance
+    spark_executor_memory: str = "4g"  # Tune as needed for optimal performance
     spark_log_level: str = "ERROR"
 
     @computed_field  # type: ignore[misc]
