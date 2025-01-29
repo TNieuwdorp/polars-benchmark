@@ -88,6 +88,9 @@ run-polars-gpu: install-deps tables  ## Run Polars GPU benchmarks
 run-polars-streaming: install-deps tables  ## Run Polars streaming benchmarks
 	POLARS_STREAMING=1 uv run --with polars -m queries.polars
 
+run-polars-new-streaming: install-deps tables  ## Run Polars streaming benchmarks
+	POLARS_NEW_STREAMING=1 uv run --with polars -m queries.polars
+
 run-polars-no-env:  ## Run Polars benchmarks without virtual environment
 	$(MAKE) -C tpch-dbgen dbgen
 	(cd tpch-dbgen && ./dbgen -f -s $(SCALE_FACTOR))
@@ -121,7 +124,7 @@ run-all: run-all-polars run-cudf run-duckdb run-pandas run-pyspark run-dask #run
 
 run-performant: run-polars run-polars-gpu run-cudf run-duckdb  ## Run all benchmarks for high scale datasets
 
-run-all-polars: run-polars run-polars-eager run-polars-gpu run-polars-streaming  ## Run all Polars benchmarks
+run-all-polars: run-polars run-polars-eager run-polars-gpu run-polars-streaming run-polars-new-streaming ## Run all Polars benchmarks
 
 run-all-gpu: run-polars-gpu run-cudf  ## Run all GPU-accelerated library benchmarks
 
@@ -158,7 +161,7 @@ run-10-times-light:  ## Run benchmarks 10 times over multiple SCALE_FACTOR value
 	for i in {1..5}; do \
 		for scale in 0.1 1.0 2.5 5.0 10.0; do \
 			echo "Running benchmarks for SCALE_FACTOR=$$scale (iteration $$i)"; \
-			SCALE_FACTOR=$$scale $(MAKE) run-pandas; \
+			SCALE_FACTOR=$$scale $(MAKE) run-all; \
 			mv output/run/timings.csv output/run/timings-$(HARDWARE)-scale-$$scale-iteration-$$i.csv; \
 		done; \
 	done;
@@ -169,7 +172,7 @@ run-10-times-heavy:
 		exit 1; \
 	fi; \
 	for i in {1..5}; do \
-		for scale in 25.0 50.0 100.0; do \
+		for scale in 25.0 50.0 75.0 100.0; do \
 			echo "Running benchmarks for SCALE_FACTOR=$$scale (iteration $$i)"; \
 			SCALE_FACTOR=$$scale $(MAKE) run-performant; \
 			mv output/run/timings.csv output/run/timings-$(HARDWARE)-scale-$$scale-iteration-$$i.csv; \
@@ -183,4 +186,12 @@ benchmark:
 		exit 1; \
 	fi; \
 	$(MAKE) run-10-times-light
+	$(MAKE) run-10-times-heavy
 	unset HARDWARE
+
+benchmark-robin:
+	for scale in 10.0 50.0 80.0 100.0; do \
+		echo "Running benchmarks for SCALE_FACTOR=$$scale (iteration $$i)"; \
+		SCALE_FACTOR=$$scale $(MAKE) run-all; \
+		mv output/run/timings.csv output/run/timings-scale-$$scale.csv; \
+	done;

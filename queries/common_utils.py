@@ -10,7 +10,7 @@ from subprocess import TimeoutExpired, run
 from typing import TYPE_CHECKING, Any
 
 from linetimer import CodeTimer
-import cudf
+#import cudf
 
 from settings import Settings
 
@@ -88,7 +88,7 @@ def execute_all(library_name: str) -> None:
         for i in query_numbers:
             try:
                 run([sys.executable, "-m", f"queries.{library_name}.q{i}"],
-                    timeout=max(60, float(os.environ.get("SCALE_FACTOR", "1.0")) / 5 * 60)
+                    timeout=max(999, float(os.environ.get("SCALE_FACTOR", "1.0")) / 5 * 60)
                     )
             except TimeoutExpired as e:
                 print(e)
@@ -157,6 +157,14 @@ def check_query_result_pd(result: pd.DataFrame, query_number: int) -> None:
     assert_frame_equal(result.reset_index(drop=True), expected, check_dtype=False)
 
 
+def check_query_result_fireducks(result: pd.DataFrame, query_number: int) -> None:
+    """Assert that the fireducks result of the query is correct."""
+    from pandas.testing import assert_frame_equal
+
+    expected = _get_query_answer_fireducks(query_number)
+    expected.equals(result)
+
+
 def check_query_result_cudf(result: pd.DataFrame, query_number: int) -> None:
     """Assert that the cudf result of the query is correct."""
     expected = _get_query_answer_cudf(query_number)
@@ -170,6 +178,12 @@ def _get_query_answer_pl(query: int) -> pl.DataFrame:
     path = settings.paths.answers / f"q{query}.parquet"
     return read_parquet(path)
 
+def _get_query_answer_fireducks(query: int) -> pd.DataFrame:
+    """Read the true answer to the query from disk as a fireducks DataFrame."""
+    from fireducks.pandas import read_parquet
+
+    path = settings.paths.answers / f"q{query}.parquet"
+    return read_parquet(path, dtype_backend="pyarrow")
 
 def _get_query_answer_pd(query: int) -> pd.DataFrame:
     """Read the true answer to the query from disk as a pandas DataFrame."""

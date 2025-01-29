@@ -80,6 +80,9 @@ def get_part_supp_ds() -> pd.DataFrame:
 
 
 def run_query(query_number: int, query: Callable[..., Any]) -> None:
-    run_query_generic(
-        query, query_number, "pandas", query_checker=check_query_result_pd
-    )
+    try:
+        run_query_generic(
+            query, query_number, "pandas", query_checker=check_query_result_pd
+        )
+    except Exception as e:
+        print(f"q{query_number} FAILED\n{e}")

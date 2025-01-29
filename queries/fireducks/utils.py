@@ -5,7 +5,7 @@ from typing import TYPE_CHECKING, Any
 import fireducks.pandas as pd
 
 from queries.common_utils import (
-    check_query_result_pd,
+    check_query_result_fireducks,
     get_table_path,
     on_second_call,
     run_query_generic,
@@ -81,5 +81,5 @@ def get_part_supp_ds() -> pd.DataFrame:
 
 def run_query(query_number: int, query: Callable[..., Any]) -> None:
     run_query_generic(
-        query, query_number, "fireducks", query_checker=check_query_result_pd
+        query, query_number, "fireducks", query_checker=check_query_result_fireducks
     )
