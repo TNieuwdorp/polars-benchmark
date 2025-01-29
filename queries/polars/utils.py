@@ -132,7 +132,7 @@ def run_query(query_number: int, lf: pl.LazyFrame) -> None:
     gpu = settings.run.polars_gpu
 
     if sum([eager, streaming, new_streaming, gpu]) > 1:
-        msg = "Pick only one Polars engine"
+        msg = "Please specify at most one of eager, streaming, new_streaming or gpu"
         raise ValueError(msg)
     
     if eager:
