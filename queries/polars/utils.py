@@ -63,19 +63,28 @@ def get_part_supp_ds() -> pl.LazyFrame:
     return _scan_ds("partsupp")
 
 
-def _preload_engine(engine):
+def _preload_engine(
+    engine: pl.GPUEngine | Literal["in-memory", "streaming", "old-streaming"],
+) -> None:
     with tempfile.TemporaryDirectory() as tmpdir:
         # GPU engine has one-time lazy-loaded cost in IO, which we
         # remove from timings here.
         f = pathlib.Path(tmpdir) / "test.pq"
         df = pl.DataFrame({"a": [1]})
         df.write_parquet(f)
-        pl.scan_parquet(f).collect(engine=engine)
+        pl.scan_parquet(f).collect(engine=engine)  # type: ignore[arg-type]
 
 
-def obtain_engine_config() -> pl.GPUEngine | Literal["cpu"]:
+def obtain_engine_config() -> (
+    pl.GPUEngine | Literal["in-memory", "streaming", "old-streaming"]
+):
+    if settings.run.polars_streaming:
+        return "old-streaming"
+    if settings.run.polars_new_streaming:
+        return "streaming"
     if not settings.run.polars_gpu:
-        return "cpu"
+        return "in-memory"
+
     import cudf_polars
     import rmm
     from cudf_polars.callback import set_device
@@ -130,9 +139,10 @@ def run_query(query_number: int, lf: pl.LazyFrame) -> None:
     new_streaming = settings.run.polars_new_streaming
     eager = settings.run.polars_eager
     gpu = settings.run.polars_gpu
+    cloud = settings.run.polars_cloud
 
-    if sum([eager, streaming, new_streaming, gpu]) > 1:
-        msg = "Please specify at most one of eager, streaming, new_streaming or gpu"
+    if sum([eager, streaming, new_streaming, gpu, cloud]) > 1:
+        msg = "Please specify at most one of eager, streaming, new_streaming, cloud or gpu"
         raise ValueError(msg)
     
     if eager:
@@ -143,18 +153,62 @@ def run_query(query_number: int, lf: pl.LazyFrame) -> None:
         library_name = "polars-streaming"
     elif new_streaming:
         library_name = "polars-new-streaming"
+    elif cloud:
+        library_name = "polars-cloud"
     else:
         library_name = "polars"
 
     if settings.run.polars_show_plan:
-        print(lf.explain(streaming=streaming, new_streaming=new_streaming, optimized=eager))
+        print(
+            lf.explain(  # type: ignore[call-arg]
+                streaming=streaming, new_streaming=new_streaming, optimized=eager
+            )
+        )
 
     engine = obtain_engine_config()
+    if settings.run.polars_show_plan:
+        print(lf.explain(engine=engine, optimized=not eager))  # type: ignore[arg-type]
+
     # Eager load engine backend, so we don't time that.
     _preload_engine(engine)
-    query = partial(
-        lf.collect, streaming=streaming, new_streaming=new_streaming, no_optimization=eager, engine=engine
-    )
+
+    if cloud:
+        import os
+
+        import polars_cloud as pc
+
+        os.environ["POLARS_SKIP_CLIENT_CHECK"] = "1"
+
+        class PatchedComputeContext(pc.ComputeContext):
+            def __init__(self, *args, **kwargs) -> None:  # type: ignore[no-untyped-def]
+                self._interactive = True
+                self._compute_address = "localhost:5051"
+                self._compute_public_key = b""
+                self._compute_id = "1"  # type: ignore[assignment]
+
+            def get_status(self: pc.ComputeContext) -> pc.ComputeContextStatus:
+                """Get the status of the compute cluster."""
+                return pc.ComputeContextStatus.RUNNING
+
+        pc.ComputeContext.__init__ = PatchedComputeContext.__init__  # type: ignore[assignment]
+        pc.ComputeContext.get_status = PatchedComputeContext.get_status  # type: ignore[method-assign]
+
+        def query():  # type: ignore[no-untyped-def]
+            result = pc.spawn(
+                lf, dst="file:///tmp/dst/", distributed=True
+            ).await_result()
+
+            if settings.run.show_results:
+                print(result.plan())
+            return result.lazy().collect()
+    else:
+        query = partial(
+            lf.collect,
+            streaming=streaming,
+            new_streaming=new_streaming,
+            no_optimization=eager,
+            engine=engine,
+        )
 
     try:
         run_query_generic(

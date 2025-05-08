@@ -78,6 +78,12 @@ module = [
   "linetimer.*",
   "modin.*",
   "plotly.*",
+  "cudf_polars.*",
+  "cudf.*",
+  "rmm.*",
+  "pylibcudf.*",
+  "awsglue.*",
+  "scripts/aws_glue.py"
 ]
 ignore_missing_imports = true
 

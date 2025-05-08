@@ -117,28 +117,31 @@ def run_query_generic(
     query_checker: Callable[..., None] | None = None,
 ) -> None:
     """Execute a query."""
-    with CodeTimer(name=f"Run {library_name} query {query_number}", unit="s") as timer:
-        result = query()
+    for _ in range(settings.run.iterations):
+        with CodeTimer(
+            name=f"Run {library_name} query {query_number}", unit="s"
+        ) as timer:
+            result = query()
 
-    if settings.run.log_timings:
-        log_query_timing(
-            solution=library_name,
-            version=library_version or version(library_name),
-            query_number=query_number,
-            time=timer.took,
-        )
+        if settings.run.log_timings:
+            log_query_timing(
+                solution=library_name,
+                version=library_version or version(library_name),
+                query_number=query_number,
+                time=timer.took,
+            )
 
-    if settings.run.check_results:
-        if query_checker is None:
-            msg = "cannot check results if no query checking function is provided"
-            raise ValueError(msg)
-        if settings.scale_factor != 1:
-            msg = f"cannot check results when scale factor is not 1, got {settings.scale_factor}"
-            raise RuntimeError(msg)
-        query_checker(result, query_number)
+        if settings.run.check_results:
+            if query_checker is None:
+                msg = "cannot check results if no query checking function is provided"
+                raise ValueError(msg)
+            if settings.scale_factor != 1:
+                msg = f"cannot check results when scale factor is not 1, got {settings.scale_factor}"
+                raise RuntimeError(msg)
+            query_checker(result, query_number)
 
-    if settings.run.show_results:
-        print(result)
+        if settings.run.show_results:
+            print(result)
 
 
 def check_query_result_pl(result: pl.DataFrame, query_number: int) -> None:
@@ -146,7 +149,7 @@ def check_query_result_pl(result: pl.DataFrame, query_number: int) -> None:
     from polars.testing import assert_frame_equal
 
     expected = _get_query_answer_pl(query_number)
-    assert_frame_equal(result, expected, check_dtype=False)
+    assert_frame_equal(result, expected, check_dtypes=False)
 
 
 def check_query_result_pd(result: pd.DataFrame, query_number: int) -> None:

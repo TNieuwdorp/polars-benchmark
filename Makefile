@@ -64,12 +64,18 @@ data/tables/scale-$(SCALE_FACTOR)/.done: | install-deps  ## Generate data tables
 	(cd tpch-dbgen && ./dbgen -vf -s $(SCALE_FACTOR))
 	mkdir -p "data/tables/scale-$(SCALE_FACTOR)"
 	mv tpch-dbgen/*.tbl data/tables/scale-$(SCALE_FACTOR)/
-	uv run --with polars -m scripts.prepare_data
+	uv run --with polars -m scripts.prepare_data --num-parts=1 --tpch_gen_folder="data/tables/scale-$(SCALE_FACTOR)"
 	rm -rf data/tables/scale-$(SCALE_FACTOR)/*.tbl
 	touch $@
 
-## Benchmark Runs
+data/tables/: data/tables/.generated
+	@true
 
+data/tables/partitioned/: .venv  ## Generate partitioned data tables (these are not yet runnable with current repo)
+	$(MAKE) -C tpch-dbgen dbgen
+	uv run --with polars -m scripts.prepare_data --num-parts=10 --tpch_gen_folder="data/tables/scale-$(SCALE_FACTOR)"
+
+## Benchmark Runs
 run-polars: install-deps tables  ## Run Polars benchmarks
 	uv run --with polars -m queries.polars
 
@@ -91,7 +97,8 @@ run-polars-streaming: install-deps tables  ## Run Polars streaming benchmarks
 run-polars-new-streaming: install-deps tables  ## Run Polars streaming benchmarks
 	POLARS_NEW_STREAMING=1 uv run --with polars -m queries.polars
 
-run-polars-no-env:  ## Run Polars benchmarks without virtual environment
+.PHONY: run-polars-no-env
+run-polars-no-env: tables ## Run Polars benchmarks
 	$(MAKE) -C tpch-dbgen dbgen
 	(cd tpch-dbgen && ./dbgen -f -s $(SCALE_FACTOR))
 	mkdir -p "data/tables/scale-$(SCALE_FACTOR)"
@@ -100,9 +107,11 @@ run-polars-no-env:  ## Run Polars benchmarks without virtual environment
 	rm -rf data/tables/scale-$(SCALE_FACTOR)/*.tbl
 	python -m queries.polars
 
-run-polars-gpu-no-env: run-polars-no-env  ## Run Polars CPU and GPU benchmarks without virtual environment
+.PHONY: run-polars-gpu-no-env
+run-polars-gpu-no-env: run-polars-no-env tables  ## Run Polars CPU and GPU benchmarks without virtual environment
 	RUN_POLARS_GPU=true CUDA_MODULE_LOADING=EAGER python -m queries.polars
 
+.P
 run-duckdb: install-deps tables  ## Run DuckDB benchmarks
 	uv run --with duckdb --with polars --with pyarrow -m queries.duckdb
 

@@ -8,6 +8,7 @@ from pydantic_settings import BaseSettings, SettingsConfigDict
 IoType: TypeAlias = Literal["skip", "parquet", "feather", "csv"]
 
 
+# Set via PATH_<NAME>
 class Paths(BaseSettings):
     answers: Path = Path("data/answers")
     tables: Path = Path("data/tables")
@@ -22,9 +23,11 @@ class Paths(BaseSettings):
     )
 
 
+# Set via RUN_<NAME>
 class Run(BaseSettings):
     io_type: IoType = "parquet"
 
+    iterations: int = 1
     log_timings: bool = True
     show_results: bool = False
     check_results: bool = False  # Only available for SCALE_FACTOR=1
@@ -34,6 +37,8 @@ class Run(BaseSettings):
     polars_gpu: bool = os.environ.get("POLARS_GPU", 0)
     polars_streaming: bool = os.environ.get("POLARS_STREAMING", 0)
     polars_new_streaming: bool = os.environ.get("POLARS_NEW_STREAMING", 0)
+    polars_new_streaming: bool = False
+    polars_cloud: bool = False
     polars_gpu_device: int = 0  # The GPU device to run on for polars GPU
     # Which style of GPU memory resource to use
     # cuda -> cudaMalloc
@@ -52,7 +57,7 @@ class Run(BaseSettings):
     spark_executor_memory: str = "4g"  # Tune as needed for optimal performance
     spark_log_level: str = "ERROR"
 
-    @computed_field  # type: ignore[misc]
+    @computed_field  # type: ignore[prop-decorator]
     @property
     def include_io(self) -> bool:
         return self.io_type != "skip"
@@ -79,7 +84,7 @@ class Settings(BaseSettings):
     plot: Plot = Plot()
     run: Run = Run()
 
-    @computed_field  # type: ignore[misc]
+    @computed_field  # type: ignore[prop-decorator]
     @property
     def dataset_base_dir(self) -> Path:
         return self.paths.tables / f"scale-{self.scale_factor}"
