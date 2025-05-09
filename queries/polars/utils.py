@@ -204,8 +204,6 @@ def run_query(query_number: int, lf: pl.LazyFrame) -> None:
     else:
         query = partial(
             lf.collect,
-            streaming=streaming,
-            new_streaming=new_streaming,
             no_optimization=eager,
             engine=engine,
         )

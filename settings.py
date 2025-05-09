@@ -37,7 +37,6 @@ class Run(BaseSettings):
     polars_gpu: bool = os.environ.get("POLARS_GPU", 0)
     polars_streaming: bool = os.environ.get("POLARS_STREAMING", 0)
     polars_new_streaming: bool = os.environ.get("POLARS_NEW_STREAMING", 0)
-    polars_new_streaming: bool = False
     polars_cloud: bool = False
     polars_gpu_device: int = 0  # The GPU device to run on for polars GPU
     # Which style of GPU memory resource to use
