@@ -111,7 +111,6 @@ run-polars-no-env: tables ## Run Polars benchmarks
 run-polars-gpu-no-env: run-polars-no-env tables  ## Run Polars CPU and GPU benchmarks without virtual environment
 	RUN_POLARS_GPU=true CUDA_MODULE_LOADING=EAGER python -m queries.polars
 
-.P
 run-duckdb: install-deps tables  ## Run DuckDB benchmarks
 	uv run --with duckdb --with polars --with pyarrow -m queries.duckdb
 
