@@ -98,31 +98,31 @@ def obtain_engine_config() -> (
     device = settings.run.polars_gpu_device
     mr_type = settings.run.use_rmm_mr
     with set_device(device):
-        # Must make sure to create memory resource on the requested device
-        free_memory, _ = rmm.mr.available_device_memory()
-        # Pick an initial pool of around 80% of the free device
-        # memory, must be multiple of 256
-        initial_pool_size = 256 * (int(free_memory * 0.8) // 256)
+        free_mem, _ = rmm.mr.available_device_memory()
+        init_pool   = 256 * (int(free_mem * 0.9) // 256)
+
         if mr_type == "cuda":
             mr = rmm.mr.CudaMemoryResource()
+        
         elif mr_type == "cuda-pool":
             mr = rmm.mr.PoolMemoryResource(
-                rmm.mr.CudaMemoryResource(), initial_pool_size=initial_pool_size
+                rmm.mr.CudaMemoryResource(),
+                initial_pool_size=init_pool
             )
+
         elif mr_type == "cuda-async":
-            mr = rmm.mr.CudaAsyncMemoryResource(initial_pool_size=initial_pool_size)
+            mr = rmm.mr.CudaAsyncMemoryResource(initial_pool_size=init_pool)
+
         elif mr_type == "managed":
             mr = rmm.mr.ManagedMemoryResource()
+
         elif mr_type == "managed-pool":
             mr = rmm.mr.PrefetchResourceAdaptor(
                 rmm.mr.PoolMemoryResource(
-                    rmm.mr.ManagedMemoryResource(), initial_pool_size=initial_pool_size
+                    rmm.mr.ManagedMemoryResource(), 
+                    initial_pool_size=init_pool
                 )
             )
-        else:
-            msg = "Unknown memory resource type"
-            raise RuntimeError(msg)
-        if mr_type in ("managed", "managed-pool"):
             for typ in [
                 "column_view::get_data",
                 "mutable_column_view::get_data",
@@ -130,6 +130,9 @@ def obtain_engine_config() -> (
                 "hash_join",
             ]:
                 plc.experimental.enable_prefetching(typ)
+
+        else:
+            raise RuntimeError(f"Unsupported MR profile: {mr_type!r}")
 
         return pl.GPUEngine(device=device, memory_resource=mr, raise_on_fail=True)
 
