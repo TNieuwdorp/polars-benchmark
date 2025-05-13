@@ -200,9 +200,11 @@ benchmark:
 benchmark-tom:
 	for scale in 10.0 30.0 100.0 300.0; do \
 		echo "SCALE_FACTOR=$$scale"; \
-		for profile in cuda cuda-pool managed managed-pool cuda-async; do \
-			SCALE_FACTOR=$$scale POLARS_GPU_PROFILE=$$profile $(MAKE) run-polars-gpu; \
-			mv output/run/timings.csv output/run/timings-scale-$$scale-$$profile.csv; \
+		for i in {1..3}; do \
+			for profile in cuda cuda-pool managed managed-pool cuda-async; do \
+				SCALE_FACTOR=$$scale POLARS_GPU_PROFILE=$$profile $(MAKE) run-polars-gpu; \
+				mv output/run/timings.csv output/run/timings-scale-$$scale-$$profile.csv; \
+			done; \
 		done; \
 	done
 	zip SEND_ME_TO_THIJS.zip output/run/timings-scale-*.csv
