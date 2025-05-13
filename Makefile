@@ -1,7 +1,7 @@
+export PATH := $(HOME)/.local/bin:$(PATH)
 .DEFAULT_GOAL := help
 
 # Variables
-PYTHONPATH   =
 SHELL        = /bin/bash
 VENV         = .venv
 VENV_BIN     = $(VENV)/bin
@@ -38,8 +38,8 @@ SCALE_FACTOR ?= 1.0
 ## Setup and Installation
 
 .venv:  ## Set up Python virtual environment
-	curl -LsSf https://astral.sh/uv/install.sh | sh
-	PATH=$$HOME/.cargo/bin:$$PATH uv venv --python 3.12 --seed
+    curl -LsSf https://astral.sh/uv/install.sh | sh
+	uv venv --python 3.12 --seed
 
 install-deps: .venv .venv/.installed-deps  ## Install Python project dependencies if not already installed
 
@@ -203,8 +203,6 @@ benchmark-tom:
 		for i in {1..3}; do \
 			for profile in cuda cuda-pool managed managed-pool cuda-async; do \
 				SCALE_FACTOR=$$scale POLARS_GPU_PROFILE=$$profile $(MAKE) run-polars-gpu; \
-				mv output/run/timings.csv output/run/timings-scale-$$scale-$$profile.csv; \
 			done; \
 		done; \
-	done
-	zip SEND_ME_TO_THIJS.zip output/run/timings-scale-*.csv
+	done;
