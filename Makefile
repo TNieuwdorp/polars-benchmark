@@ -1,4 +1,5 @@
 export PATH := $(HOME)/.local/bin:$(PATH)
+UV_EXECUTABLE := $(HOME)/.local/bin/uv
 .DEFAULT_GOAL := help
 
 # Variables
@@ -38,8 +39,8 @@ SCALE_FACTOR ?= 1.0
 ## Setup and Installation
 
 .venv:  ## Set up Python virtual environment
-    curl -LsSf https://astral.sh/uv/install.sh | sh
-	uv venv --python 3.12 --seed
+	mkdir -p "$(dir $(UV_EXECUTABLE))" && curl -LsSf https://astral.sh/uv/install.sh | env UV_INSTALL_DIR="$(dir $(UV_EXECUTABLE))" INSTALLER_NO_MODIFY_PATH=1 sh
+	$(UV_EXECUTABLE) venv --python 3.12 --seed
 
 install-deps: .venv .venv/.installed-deps  ## Install Python project dependencies if not already installed
 
