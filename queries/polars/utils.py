@@ -105,15 +105,18 @@ def obtain_engine_config() -> (
             mr = rmm.mr.CudaMemoryResource()
         
         elif mr_type == "cuda-pool":
-                rmm.mr.PoolMemoryResource(
+            mr = rmm.mr.PoolMemoryResource(
                     rmm.mr.CudaMemoryResource(),
                     initial_pool_size=init_pool
                 )
         elif mr_type == "cuda-binning":
             mr = rmm.mr.BinningMemoryResource(
-                rmm.mr.CudaMemoryResource(),
-                min_size_exponent=4,
-                max_size_exponent=26,
+                rmm.mr.PoolMemoryResource(
+                    rmm.mr.CudaMemoryResource(),
+                    initial_pool_size=init_pool,
+                ),
+                min_size_exponent=16,
+                max_size_exponent=24,
             )
         elif mr_type == "managed":
             mr = rmm.mr.ManagedMemoryResource()
@@ -129,7 +132,7 @@ def obtain_engine_config() -> (
                 mr = rmm.mr.PrefetchResourceAdaptor(
                     rmm.mr.BinningMemoryResource(
                         rmm.mr.CudaMemoryResource(),
-                        min_size_exponent=4,
+                        min_size_exponent=12,
                         max_size_exponent=26,
                     )
                 )

@@ -209,16 +209,8 @@ benchmark-tom:
 	done;
 
 benchmark-tom-2:
-	for scale in 10.0 30.0 100.0 300.0; do \
-		echo "SCALE_FACTOR=$$scale"; \
-		for i in {1..3}; do \
-			for profile in cuda-binning managed-binning; do \
-				SCALE_FACTOR=$$scale POLARS_GPU_PROFILE=$$profile $(MAKE) run-polars-gpu; \
-			done; \
-		done; \
-	done;
 	for i in {1..3}; do \
-		for profile in cuda cuda-pool cuda-binning managed managed-pool managed-binning; do \
+		for profile in cuda cuda-pool managed managed-pool; do \
 			SCALE_FACTOR=1000.0 POLARS_GPU_PROFILE=$$profile $(MAKE) run-polars-gpu; \
 		done; \
 	done;
