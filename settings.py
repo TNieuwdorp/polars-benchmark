@@ -47,8 +47,8 @@ class Run(BaseSettings):
     # cuda-async -> cudaMallocAsync (comes with pool)
     # See https://docs.rapids.ai/api/rmm/stable/ for details on RMM memory resources
     use_rmm_mr: Literal[
-        "cuda", "cuda-pool", "managed", "managed-pool", "cuda-async"
-    ] = os.environ.get("POLARS_GPU_PROFILE", "cuda-async")
+        "cuda", "cuda-pool", "managed", "managed-pool", "cuda-async", "cuda-binning", "managed-binning"
+    ] = os.environ.get("POLARS_GPU_PROFILE", "cuda-pool")
 
     modin_memory: int = 8_000_000_000  # Tune as needed for optimal performance
 

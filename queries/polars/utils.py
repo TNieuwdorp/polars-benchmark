@@ -105,24 +105,34 @@ def obtain_engine_config() -> (
             mr = rmm.mr.CudaMemoryResource()
         
         elif mr_type == "cuda-pool":
-            mr = rmm.mr.PoolMemoryResource(
-                rmm.mr.CudaMemoryResource(),
-                initial_pool_size=init_pool
-            )
-
-        elif mr_type == "cuda-async":
-            mr = rmm.mr.CudaAsyncMemoryResource(initial_pool_size=init_pool)
-
-        elif mr_type == "managed":
-            mr = rmm.mr.ManagedMemoryResource()
-
-        elif mr_type == "managed-pool":
-            mr = rmm.mr.PrefetchResourceAdaptor(
                 rmm.mr.PoolMemoryResource(
-                    rmm.mr.ManagedMemoryResource(), 
+                    rmm.mr.CudaMemoryResource(),
                     initial_pool_size=init_pool
                 )
+        elif mr_type == "cuda-binning":
+            mr = rmm.mr.BinningMemoryResource(
+                rmm.mr.CudaMemoryResource(),
+                min_size_exponent=4,
+                max_size_exponent=26,
             )
+        elif mr_type == "managed":
+            mr = rmm.mr.ManagedMemoryResource()
+        elif mr_type == "managed-pool" or "managed-binning":
+            if mr_type == "managed-pool":
+                mr = rmm.mr.PrefetchResourceAdaptor(
+                    rmm.mr.PoolMemoryResource(
+                        rmm.mr.ManagedMemoryResource(), 
+                        initial_pool_size=init_pool
+                    )
+                )
+            elif mr_type == "managed-binning":
+                mr = rmm.mr.PrefetchResourceAdaptor(
+                    rmm.mr.BinningMemoryResource(
+                        rmm.mr.CudaMemoryResource(),
+                        min_size_exponent=4,
+                        max_size_exponent=26,
+                    )
+                )
             for typ in [
                 "column_view::get_data",
                 "mutable_column_view::get_data",
