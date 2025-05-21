@@ -211,6 +211,6 @@ benchmark-tom:
 benchmark-tom-2:
 	for i in {1..3}; do \
 		for profile in cuda cuda-pool managed managed-pool; do \
-			SCALE_FACTOR=1000.0 POLARS_GPU_PROFILE=$$profile $(MAKE) run-polars-gpu; \
+			SCALE_FACTOR=500.0 POLARS_GPU_PROFILE=$$profile $(MAKE) run-polars-gpu; \
 		done; \
 	done;
