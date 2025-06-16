@@ -103,7 +103,7 @@ def obtain_engine_config() -> (
 
         if mr_type == "cuda":
             mr = rmm.mr.CudaMemoryResource()
-        
+
         elif mr_type == "cuda-pool":
             mr = rmm.mr.PoolMemoryResource(
                     rmm.mr.CudaMemoryResource(),
@@ -120,11 +120,11 @@ def obtain_engine_config() -> (
             )
         elif mr_type == "managed":
             mr = rmm.mr.ManagedMemoryResource()
-        elif mr_type == "managed-pool" or "managed-binning":
+        elif mr_type == "managed-pool" or mr_type == "managed-binning":
             if mr_type == "managed-pool":
                 mr = rmm.mr.PrefetchResourceAdaptor(
                     rmm.mr.PoolMemoryResource(
-                        rmm.mr.ManagedMemoryResource(), 
+                        rmm.mr.ManagedMemoryResource(),
                         initial_pool_size=init_pool
                     )
                 )
@@ -143,6 +143,20 @@ def obtain_engine_config() -> (
                 "hash_join",
             ]:
                 plc.experimental.enable_prefetching(typ)
+        elif mr_type == "multi":
+            # This will use all GPUs on the local host by default
+            from dask_cuda import LocalCUDACluster
+            from dask.distributed import Client, wait
+
+            client = Client(LocalCUDACluster())
+            executor_options = {"scheduler": "distributed"}  # Use "synchronous" for single GPU streaming execution
+            executor = "streaming"
+
+            return pl.GPUEngine(
+                executor=executor,
+                executor_options=executor_options,
+                raise_on_fail=True,
+            )
 
         else:
             raise RuntimeError(f"Unsupported MR profile: {mr_type!r}")
@@ -160,7 +174,7 @@ def run_query(query_number: int, lf: pl.LazyFrame) -> None:
     if sum([eager, streaming, new_streaming, gpu, cloud]) > 1:
         msg = "Please specify at most one of eager, streaming, new_streaming, cloud or gpu"
         raise ValueError(msg)
-    
+
     if eager:
         library_name = "polars-eager"
     elif gpu:

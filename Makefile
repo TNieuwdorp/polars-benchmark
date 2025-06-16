@@ -90,7 +90,7 @@ run-polars-eager: install-deps tables  ## Run Polars benchmarks in eager mode
 	POLARS_EAGER=1 uv run --with polars -m queries.polars
 
 run-polars-gpu: install-deps tables  ## Run Polars GPU benchmarks
-	POLARS_GPU=1 CUDA_MODULE_LOADING=EAGER uv run --with polars[gpu] -m queries.polars 
+	POLARS_GPU=1 CUDA_MODULE_LOADING=EAGER uv run --with polars[gpu] --with dask_cuda -m queries.polars 
 
 run-polars-streaming: install-deps tables  ## Run Polars streaming benchmarks
 	POLARS_STREAMING=1 uv run --with polars -m queries.polars
@@ -202,7 +202,7 @@ benchmark-tom:
 	for scale in 10.0 30.0 100.0 300.0; do \
 		echo "SCALE_FACTOR=$$scale"; \
 		for i in {1..3}; do \
-			for profile in cuda cuda-pool managed managed-pool cuda-async; do \
+			for profile in cuda cuda-pool managed managed-pool multi; do \
 				SCALE_FACTOR=$$scale POLARS_GPU_PROFILE=$$profile $(MAKE) run-polars-gpu; \
 			done; \
 		done; \
