@@ -200,7 +200,7 @@ benchmark:
 
 
 multi-gpu-benchmark:
-	@for i in {1..2}; do \
+	@for i in {1..8}; do \
 		for number_of_gpus in $$(seq 1 $$(nvidia-smi --query-gpu=count --format=csv,noheader | head -n 1)); do \
 			for scale in 10.0 100.0; do \
 				echo "Iteration $$i, number of gpus $$number_of_gpus, scale $$scale"; \
