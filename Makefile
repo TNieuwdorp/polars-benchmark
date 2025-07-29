@@ -90,7 +90,7 @@ run-polars-eager: install-deps tables  ## Run Polars benchmarks in eager mode
 	POLARS_EAGER=1 uv run --with polars -m queries.polars
 
 run-polars-gpu: install-deps tables  ## Run Polars GPU benchmarks
-	POLARS_GPU=1 CUDA_MODULE_LOADING=EAGER uv run --with polars[gpu] --with dask_cuda -m queries.polars 
+	POLARS_GPU=1 CUDA_MODULE_LOADING=EAGER uv run --with polars[gpu] --with dask_cuda -m queries.polars
 
 run-polars-streaming: install-deps tables  ## Run Polars streaming benchmarks
 	POLARS_STREAMING=1 uv run --with polars -m queries.polars
@@ -187,7 +187,7 @@ run-10-times-heavy:
 			mv output/run/timings.csv output/run/timings-$(HARDWARE)-scale-$$scale-iteration-$$i.csv; \
 		done; \
 	done; \
-	
+
 
 benchmark:
 	@if [ -z "$(HARDWARE)" ]; then \
@@ -198,19 +198,13 @@ benchmark:
 	$(MAKE) run-10-times-heavy
 	unset HARDWARE
 
-benchmark-tom:
-	for scale in 10.0 30.0 100.0 300.0; do \
-		echo "SCALE_FACTOR=$$scale"; \
-		for i in {1..3}; do \
-			for profile in cuda cuda-pool managed managed-pool multi; do \
-				SCALE_FACTOR=$$scale POLARS_GPU_PROFILE=$$profile $(MAKE) run-polars-gpu; \
-			done; \
-		done; \
-	done;
 
-benchmark-tom-2:
-	for i in {1..3}; do \
-		for profile in cuda cuda-pool managed managed-pool; do \
-			SCALE_FACTOR=500.0 POLARS_GPU_PROFILE=$$profile $(MAKE) run-polars-gpu; \
+multi-gpu-benchmark:
+	@for i in {1..2}; do \
+		for number_of_gpus in $$(seq 1 $$(nvidia-smi --query-gpu=count --format=csv,noheader | head -n 1)); do \
+			for scale in 10.0 100.0; do \
+				echo "Iteration $$i, number of gpus $$number_of_gpus, scale $$scale"; \
+				SCALE_FACTOR=$$scale NUMBER_OF_GPUS=$$number_of_gpus POLARS_GPU=1 POLARS_GPU_PROFILE=multi $(MAKE) run-polars-gpu; \
+			done; \
 		done; \
 	done;

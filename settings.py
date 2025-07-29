@@ -33,10 +33,11 @@ class Run(BaseSettings):
     check_results: bool = False  # Only available for SCALE_FACTOR=1
 
     polars_show_plan: bool = False
-    polars_eager: bool = os.environ.get("POLARS_EAGER", 0)
-    polars_gpu: bool = os.environ.get("POLARS_GPU", 0)
-    polars_streaming: bool = os.environ.get("POLARS_STREAMING", 0)
-    polars_new_streaming: bool = os.environ.get("POLARS_NEW_STREAMING", 0)
+    polars_eager: bool = bool(os.environ.get("POLARS_EAGER", 0))
+    polars_gpu: bool = bool(os.environ.get("POLARS_GPU", 0))
+    polars_number_of_gpus: int = int(os.environ.get("NUMBER_OF_GPUS", 1))
+    polars_streaming: bool = bool(os.environ.get("POLARS_STREAMING", 0))
+    polars_new_streaming: bool = bool(os.environ.get("POLARS_NEW_STREAMING", 0))
     polars_cloud: bool = False
     polars_gpu_device: int = 0  # The GPU device to run on for polars GPU
     # Which style of GPU memory resource to use

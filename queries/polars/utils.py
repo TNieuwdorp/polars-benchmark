@@ -148,7 +148,7 @@ def obtain_engine_config() -> (
             from dask_cuda import LocalCUDACluster
             from dask.distributed import Client, wait
 
-            client = Client(LocalCUDACluster())
+            client = Client(LocalCUDACluster(n_workers=settings.run.polars_number_of_gpus))
             executor_options = {"scheduler": "distributed"}  # Use "synchronous" for single GPU streaming execution
             executor = "streaming"
 
@@ -179,6 +179,10 @@ def run_query(query_number: int, lf: pl.LazyFrame) -> None:
         library_name = "polars-eager"
     elif gpu:
         library_name = f"polars-gpu-{settings.run.use_rmm_mr}"
+        if settings.run.use_rmm_mr == "multi":
+            from os import environ
+            # Add amount of GPUs
+            library_name = f"{library_name}-{environ.get('NUMBER_OF_GPUS', -1)}"
     elif streaming:
         library_name = "polars-streaming"
     elif new_streaming:
